@@ -5,17 +5,45 @@
     <vendor email="coder@sonensei.ch" url="https://sonensei.ch">Sonensei.ch</vendor>
 
     <description><![CDATA[
-        <b>JSON viewer &amp; editor.</b> Opens .json files as nested, filterable, editable tables instead of
-        raw text, with four search modes (match anywhere, key names only,
-        widen to the containing object, or widen to every ancestor's
-        siblings), in-place editing with full undo support, and both light
-        and dark themes that follow the IDE's own theme automatically.
-        <br><br>
-        Shown as an additional tab alongside the built-in JSON editor --
-        schema validation and completion stay available on their own tab,
-        this is a specialized view, not a replacement.
-        <br><br>
-        Source code and issues: <a href="https://github.com/OldPeasant/json-canopy">github.com/OldPeasant/json-canopy</a>
+        <p><b>JSON Canopy</b> opens <code>.json</code> files as nested, filterable, editable tables
+        instead of raw text, in an extra tab next to the built-in JSON editor.</p>
+
+        <h3>Explore</h3>
+        <ul>
+            <li>Objects and arrays render as tables inside tables. An array of objects becomes one
+                column per item, so you can compare entries at a glance.</li>
+            <li>Flip a table between horizontal and vertical orientation, and hide columns with the
+                field selector.</li>
+            <li>Large arrays are paged, so big files stay responsive. Load more items when you
+                need them.</li>
+        </ul>
+
+        <h3>Search</h3>
+        <ul>
+            <li>Four filter modes: match anywhere, keys only, the containing object, or the
+                surrounding context. Context mode keeps the matching item together with the
+                structure around it.</li>
+        </ul>
+
+        <h3>Edit in place</h3>
+        <ul>
+            <li>Change any value directly, with a type dropdown per value (string, number,
+                boolean, null, object, array).</li>
+            <li>Add or remove object keys and array items with + and &times;.</li>
+            <li>Edits go through the IDE, so undo and redo work.</li>
+            <li>Prefer text? Edit the whole document as raw JSON, or copy and download the
+                result.</li>
+        </ul>
+
+        <h3>Fits your IDE</h3>
+        <ul>
+            <li>Light and dark themes follow the IDE theme automatically.</li>
+            <li>It is an additional tab. Schema validation and completion stay on the standard
+                JSON tab, so this is a specialized view, not a replacement.</li>
+        </ul>
+
+        <p>Source code and issues:
+        <a href="https://github.com/OldPeasant/json-canopy">github.com/OldPeasant/json-canopy</a></p>
     ]]></description>
 
     <!-- Community is enough: everything this plugin uses (FileEditorProvider,
