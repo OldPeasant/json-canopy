@@ -1,0 +1,292 @@
+/* Host contributes no layout box — behaves like the rendered content itself. */
+:host {
+  display: contents;
+}
+
+/* Primitive values — only the empty-object/array placeholder is rendered
+   directly here; everything else goes through <app-editable-value>, which
+   has its own matching `.val` rules (edit mode off) or input styling (on). */
+
+.val.empty {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  color: var(--val-null);
+  letter-spacing: 0.05em;
+}
+
+/* Clickable table wrapper */
+
+.tw {
+  /* Must be a block box, not inline-block: in edit mode this wrapper is
+     preceded by <app-editable-value>'s inline type-select, and an
+     inline-block would share that text line whenever the row happens to be
+     narrow enough to fit — shifting the table right by the select's width
+     on some rows but not others, and breaking column alignment between
+     sibling tables at the same structural path. */
+  display: block;
+  width: fit-content;
+  position: relative;
+  cursor: pointer;
+  border-radius: 3px;
+  /* Reserves room for the field-select button (app-column-menu), which sits
+     just above the table instead of overlapping the first header cell. */
+  margin-top: 15px;
+}
+
+/* Transpose hint — appears on hover, shows what clicking WILL do. */
+.tw::before {
+  content: '⇅'; /* currently H → will go V */
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
+  font-size: 9px;
+  line-height: 1;
+  padding: 2px 4px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: 0 2px 0 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+
+.tw.is-v::before {
+  content: '⇄'; /* currently V → will go H */
+}
+
+.tw:hover::before {
+  opacity: 1;
+}
+
+.tw:hover > table {
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+/* Table */
+
+table {
+  border-collapse: collapse;
+  border: 1px solid var(--border);
+  font-size: 0.8125rem;
+  transition: border-color 0.15s;
+}
+
+table th,
+table td {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+table th {
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+  font-weight: 600;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+table th.corner {
+  background: var(--bg-hover);
+}
+
+table th.idx {
+  color: var(--val-null);
+  font-weight: 400;
+}
+
+table td {
+  background: var(--bg-panel);
+  color: var(--text);
+  position: relative;
+}
+
+table tbody tr:hover > td {
+  background: var(--bg-hover);
+}
+
+/* Editing controls */
+
+.del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  padding: 0;
+  font-size: 10px;
+  line-height: 1;
+  background: transparent;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  vertical-align: middle;
+  opacity: 0;
+  transition:
+    opacity 0.12s,
+    color 0.12s,
+    border-color 0.12s;
+}
+
+th:hover > .del-btn,
+td:hover > .del-btn {
+  opacity: 1;
+}
+
+.del-btn:hover {
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+.cell-del {
+  vertical-align: top;
+}
+
+/* Empty cell for a shared column this row doesn't have yet — invites
+   filling it in with the same shape other rows use there. Covers the whole
+   cell (not just its own small label) via absolute positioning against the
+   now-relative `table td`, so a click anywhere in a tall, otherwise-empty
+   cell hits this button and stops there — instead of falling through to
+   the table's own click handler and toggling its orientation. */
+.add-cell-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  background: transparent;
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity 0.12s,
+    color 0.12s,
+    border-color 0.12s,
+    background 0.12s;
+}
+
+td:hover > .add-cell-btn {
+  opacity: 1;
+}
+
+.add-cell-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+td.row-actions {
+  text-align: center;
+}
+
+td.row-actions .del-btn {
+  opacity: 1;
+}
+
+th.idx .del-btn {
+  opacity: 1;
+  margin-left: 6px;
+}
+
+.add-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  vertical-align: top;
+}
+
+.add-input {
+  width: 9ch;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+
+.add-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+
+.add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 1;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  cursor: pointer;
+  transition:
+    box-shadow 0.12s,
+    background 0.12s;
+}
+
+.add-btn:hover {
+  box-shadow: var(--glow);
+  background: var(--bg-hover);
+}
+
+/* Reveal bar — appears under a table whose row/entry count was clipped to
+   a byte-size budget (see reveal.util.ts), offering progressively bigger
+   batches plus "show everything". */
+.reveal-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+  cursor: default;
+}
+
+.reveal-info {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.reveal-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.12s,
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.reveal-btn:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
+  box-shadow: var(--glow);
+}

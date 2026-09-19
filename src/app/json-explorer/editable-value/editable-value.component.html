@@ -1,0 +1,51 @@
+@if (editMode.enabled()) {
+  <span class="ev">
+    <select class="type-select" (change)="onTypeChange($event)" (click)="$event.stopPropagation()">
+      @for (t of types; track t) {
+        <option [value]="t" [selected]="t === type">{{ t }}</option>
+      }
+    </select>
+
+    @if (type === 'string') {
+      <input
+        #input
+        class="val-input str"
+        type="text"
+        [value]="value"
+        (click)="$event.stopPropagation()"
+        (blur)="commitString(input.value)"
+        (keydown.enter)="input.blur()"
+      />
+    } @else if (type === 'number') {
+      <input
+        #input
+        class="val-input num"
+        type="number"
+        [value]="value"
+        (click)="$event.stopPropagation()"
+        (blur)="commitNumber(input.value)"
+        (keydown.enter)="input.blur()"
+      />
+    } @else if (type === 'boolean') {
+      <input
+        type="checkbox"
+        class="val-input bool"
+        [checked]="value"
+        (click)="$event.stopPropagation()"
+        (change)="commitBoolean($any($event.target).checked)"
+      />
+    } @else if (type === 'null') {
+      <span class="val null">null</span>
+    }
+  </span>
+} @else {
+  @if (type === 'null') {
+    <span class="val null">null</span>
+  } @else if (type === 'boolean') {
+    <span class="val bool">{{ value }}</span>
+  } @else if (type === 'number') {
+    <span class="val num">{{ value }}</span>
+  } @else if (type === 'string') {
+    <span class="val str">{{ value }}</span>
+  }
+}

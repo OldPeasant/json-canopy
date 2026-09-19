@@ -1,0 +1,141 @@
+{
+  "team": "Nightwatch",
+  "founded": 2019,
+  "active": true,
+  "members": [
+    {
+      "id": 1,
+      "name": "Ada Lovelace",
+      "role": "engineer",
+      "active": true,
+      "skills": [
+        "math",
+        "algorithms"
+      ],
+      "contact": {
+        "email": "ada@nightwatch.io",
+        "slack": "@ada"
+      }
+    },
+    {
+      "id": 2,
+      "name": "Grace Hopper",
+      "role": "engineer",
+      "active": true,
+      "skills": [
+        "compilers",
+        "cobol"
+      ],
+      "contact": {
+        "email": "grace@nightwatch.io",
+        "slack": "@grace"
+      },
+      "certifications": [
+        "COBOL Master",
+        "Rear Admiral"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Alan Turing",
+      "role": "researcher",
+      "active": false,
+      "skills": [
+        "cryptography",
+        "theory"
+      ],
+      "contact": null,
+      "notes": "On sabbatical until 2027"
+    },
+    {
+      "id": 4,
+      "name": "Margaret Hamilton",
+      "role": "lead",
+      "active": true,
+      "skills": [],
+      "contact": {
+        "email": "margaret@nightwatch.io",
+        "phone": "555-0100"
+      },
+      "reports": [
+        2,
+        5
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Katherine Johnson",
+      "role": "engineer",
+      "active": true,
+      "skills": [
+        "orbital mechanics",
+        "math"
+      ],
+      "contact": {
+        "email": "katherine@nightwatch.io"
+      }
+    },
+    {
+      "id": 6,
+      "name": "Hedy Lamarr",
+      "role": "researcher",
+      "active": true,
+      "skills": [
+        "frequency hopping"
+      ],
+      "contact": {
+        "email": "hedy@nightwatch.io",
+        "slack": "@hedy"
+      },
+      "patents": 1
+    },
+    {
+      "id": 7,
+      "name": "Radia Perlman",
+      "role": "engineer",
+      "active": false,
+      "skills": [
+        "networking",
+        "spanning tree"
+      ],
+      "contact": {
+        "email": "radia@nightwatch.io"
+      },
+      "awards": [
+        "Internet Hall of Fame"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Tim Berners-Lee",
+      "role": "founder",
+      "active": true,
+      "contact": {
+        "email": "tim@nightwatch.io",
+        "website": "https://timbl.com"
+      }
+    },
+    {
+      "id": 0,
+      "name": "Peter Gürtler",
+      "role": "genius",
+      "active": true,
+      "contact": {
+        "email": "info@petermaxguerlter.com",
+        "website": "https://sonensei.ch"
+      }
+    },
+    ""
+  ],
+  "metadata": {
+    "lastUpdated": "2026-09-01",
+    "tags": [
+      "engineering",
+      "history"
+    ],
+    "stats": {
+      "totalMembers": 8,
+      "activeCount": 6
+    }
+  }
+}

@@ -1,0 +1,10 @@
+JSON Canopy
+Copyright 2026 Sonensei.ch
+
+This product includes software developed by Sonensei.ch
+(https://sonensei.ch).
+
+Third-party components bundled in the built plugin:
+  - Angular (MIT License)
+  - RxJS (Apache License 2.0)
+  - Orbitron and Share Tech Mono webfonts (SIL Open Font License 1.1)

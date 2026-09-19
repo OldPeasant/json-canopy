@@ -1,0 +1,80 @@
+<div class="shell">
+  <header class="titlebar">
+    <h1>JSON<span class="accent">_</span>CANOPY</h1>
+    @if (hasData()) {
+      <div class="titlebar-actions">
+        @if (fileName()) {
+          <span class="filename">{{ fileName() }}</span>
+        }
+        <button type="button" class="btn" (click)="toggleRawMode()">
+          {{ rawMode() ? 'Table view' : 'Raw JSON' }}
+        </button>
+        <button type="button" class="btn" (click)="copyJson()">{{ copied() ? 'Copied!' : 'Copy JSON' }}</button>
+        @if (!hostBridge.isHostMode()) {
+          <button type="button" class="btn" (click)="downloadJson()">Download JSON</button>
+          <button type="button" class="btn" (click)="reset()">Load new</button>
+        }
+      </div>
+    }
+  </header>
+
+  <main class="content">
+    @if (hasData()) {
+      @if (rawMode()) {
+        <div class="raw-editor">
+          <textarea
+            class="paste-area"
+            spellcheck="false"
+            [value]="rawDraft()"
+            (input)="onRawInput($event)"
+          ></textarea>
+          @if (error()) {
+            <p class="error">{{ error() }}</p>
+          }
+          <div class="loader-actions">
+            <button type="button" class="btn" (click)="cancelRaw()">Cancel</button>
+            <button type="button" class="btn btn-primary" (click)="applyRaw()">Apply</button>
+          </div>
+        </div>
+      } @else {
+        <app-json-explorer [value]="data()" (valueChange)="onDataChange($event)" />
+      }
+    } @else if (hostBridge.isHostMode()) {
+      <div class="loader">
+        <p class="hint">Loading…</p>
+      </div>
+    } @else {
+      <div
+        class="loader"
+        [class.dragging]="dragging()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave()"
+        (drop)="onDrop($event)"
+      >
+        <p class="hint">Paste JSON below, drop a file, or browse one from disk.</p>
+
+        <textarea
+          class="paste-area"
+          placeholder="{ &quot;paste&quot;: &quot;your JSON here&quot; }"
+          spellcheck="false"
+          [value]="draft()"
+          (input)="onDraftInput($event)"
+        ></textarea>
+
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+
+        <div class="loader-actions">
+          <label class="btn file-btn">
+            Browse file…
+            <input type="file" accept=".json,application/json" (change)="onFileSelected($event)" hidden />
+          </label>
+          <button type="button" class="btn btn-primary" [disabled]="!draft().trim()" (click)="loadDraft()">
+            View JSON
+          </button>
+        </div>
+      </div>
+    }
+  </main>
+</div>

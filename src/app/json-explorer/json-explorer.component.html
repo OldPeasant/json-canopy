@@ -1,0 +1,41 @@
+<div class="json-explorer">
+  <div class="toolbar">
+    <div class="filter-box">
+      <input
+        type="text"
+        placeholder="Filter by key or value…"
+        [value]="filter.text()"
+        (input)="onFilterInput($event)"
+      />
+      @if (filter.text()) {
+        <button type="button" class="clear-filter" (click)="filter.clear()" title="Clear filter">×</button>
+      }
+    </div>
+    <div class="filter-modes" role="group" aria-label="Filter mode">
+      @for (m of filterModes; track m.value) {
+        <button
+          type="button"
+          class="filter-mode-btn"
+          [class.is-active]="filter.mode() === m.value"
+          (click)="filter.setMode(m.value)"
+          [title]="m.hint"
+        >
+          {{ m.label }}
+        </button>
+      }
+    </div>
+    <button
+      type="button"
+      class="mode-toggle"
+      [class.is-editing]="editMode.enabled()"
+      [disabled]="editMode.readOnly()"
+      [title]="editMode.readOnly() ? 'This file is read-only' : ''"
+      (click)="toggleEditMode()"
+    >
+      {{ editMode.readOnly() ? 'Read-only' : (editMode.enabled() ? 'Go to view mode' : 'Go to edit mode') }}
+    </button>
+  </div>
+  <div class="json-output">
+    <app-json-table [value]="value" path="" (valueChange)="valueChange.emit($event)" />
+  </div>
+</div>

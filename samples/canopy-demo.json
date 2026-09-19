@@ -1,0 +1,10 @@
+{
+  "project": "Nightwatch",
+  "released": true,
+  "version": 3,
+  "members": [
+    { "id": 1, "name": "Ada Lovelace", "role": "engineer", "skills": ["math", "algorithms"], "contact": { "email": "ada@nightwatch.io" } },
+    { "id": 2, "name": "Grace Hopper", "role": "engineer", "skills": ["compilers"], "contact": { "email": "grace@nightwatch.io", "slack": "@grace" } },
+    { "id": 3, "name": "Alan Turing", "role": "researcher", "skills": ["cryptography"], "contact": null }
+  ]
+}

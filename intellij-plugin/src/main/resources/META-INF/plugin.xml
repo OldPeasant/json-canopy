@@ -1,0 +1,37 @@
+<idea-plugin>
+    <id>ch.sonensei.canopy</id>
+    <name>JSON Canopy</name>
+
+    <vendor email="coder@sonensei.ch" url="https://sonensei.ch">Sonensei.ch</vendor>
+
+    <description><![CDATA[
+        <b>JSON viewer &amp; editor.</b> Opens .json files as nested, filterable, editable tables instead of
+        raw text, with four search modes (match anywhere, key names only,
+        widen to the containing object, or widen to every ancestor's
+        siblings), in-place editing with full undo support, and both light
+        and dark themes that follow the IDE's own theme automatically.
+        <br><br>
+        Shown as an additional tab alongside the built-in JSON editor --
+        schema validation and completion stay available on their own tab,
+        this is a specialized view, not a replacement.
+    ]]></description>
+
+    <!-- Community is enough: everything this plugin uses (FileEditorProvider,
+         JCEF, VFS, WriteCommandAction) lives in the open platform. -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <!-- From IDE build 262 (2026.2) on, JCEF is its own bundled "Web
+         Browser (JCEF)" module/plugin, and com.intellij.ui.jcef.* classes
+         only reach plugins that explicitly depend on it: without this,
+         CanopyFileEditor throws NoClassDefFoundError on 262+ even
+         though it compiles and runs fine on older builds. Optional so it's
+         a no-op on pre-262 IDEs, where these classes are already part of
+         core with no separate module to depend on; withJcef.xml is an
+         intentionally empty descriptor IntelliJ requires an optional
+         depends element to name. -->
+    <depends optional="true" config-file="withJcef.xml">com.intellij.modules.jcef</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileEditorProvider implementation="ch.sonensei.canopy.editor.CanopyFileEditorProvider"/>
+    </extensions>
+</idea-plugin>

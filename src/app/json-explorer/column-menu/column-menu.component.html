@@ -1,0 +1,23 @@
+<button
+  type="button"
+  class="col-menu-btn"
+  [class.has-hidden]="hiddenCount > 0"
+  (click)="toggleOpen($event)"
+  title="Choose visible fields"
+>
+  ▤
+  @if (hiddenCount > 0) {
+    <span class="badge">{{ hiddenCount }}</span>
+  }
+</button>
+
+@if (open()) {
+  <div class="col-menu" (click)="$event.stopPropagation()">
+    @for (k of keys; track k) {
+      <label>
+        <input type="checkbox" [checked]="!isHidden(k)" (change)="toggleKey($event, k)" />
+        <span>{{ k }}</span>
+      </label>
+    }
+  </div>
+}

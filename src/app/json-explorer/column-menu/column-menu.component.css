@@ -1,0 +1,91 @@
+/* Positioned by the parent `.tw` wrapper, which is `position: relative` and
+   reserves a `margin-top` so this sits just above the table's border instead
+   of overlapping the first header cell's text. */
+:host {
+  position: absolute;
+  top: -15px;
+  left: 0;
+  z-index: 2;
+}
+
+.col-menu-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 14px;
+  font-size: 10px;
+  line-height: 1;
+  padding: 0;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--border-strong);
+  border-bottom: none;
+  border-radius: 3px 3px 0 0;
+  cursor: pointer;
+  opacity: 0.5;
+  transition:
+    opacity 0.12s,
+    background 0.12s;
+}
+
+:host-context(.tw:hover) .col-menu-btn {
+  opacity: 1;
+}
+
+.col-menu-btn.has-hidden {
+  opacity: 1;
+  background: var(--accent-soft);
+}
+
+.col-menu-btn .badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 12px;
+  height: 12px;
+  padding: 0 2px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--bg-page);
+  font-size: 8px;
+  line-height: 12px;
+  text-align: center;
+}
+
+.col-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 140px;
+  max-height: 220px;
+  overflow: auto;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  box-shadow: var(--shadow-pop);
+  padding: 4px;
+  cursor: default;
+}
+
+.col-menu label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 4px;
+  font-size: 0.75rem;
+  font-family: var(--font-mono);
+  color: var(--text);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.col-menu label:hover {
+  background: var(--bg-hover);
+}
+
+.col-menu input[type='checkbox'] {
+  cursor: pointer;
+}
