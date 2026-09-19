@@ -42,3 +42,8 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Signing material (keep outside the repo)
+*.pem
+*.crt
+*.key
