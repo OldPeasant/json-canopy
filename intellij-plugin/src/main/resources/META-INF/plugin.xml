@@ -14,6 +14,8 @@
         Shown as an additional tab alongside the built-in JSON editor --
         schema validation and completion stay available on their own tab,
         this is a specialized view, not a replacement.
+        <br><br>
+        Source code and issues: <a href="https://github.com/OldPeasant/json-canopy">github.com/OldPeasant/json-canopy</a>
     ]]></description>
 
     <!-- Community is enough: everything this plugin uses (FileEditorProvider,
