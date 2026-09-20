@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "ch.sonensei.canopy"
-version = "0.1.0"
+version = "0.2.0"
 
 repositories {
     mavenCentral()
@@ -42,7 +42,11 @@ intellijPlatform {
         changeNotes.set(
             """
             <ul>
-                <li>Initial release: nested, filterable JSON tables with in-place editing.</li>
+                <li>New search: Matches, Path and Context modes, a "Names only" option, match
+                    highlighting and dimmed context, with a description of the active mode.</li>
+                <li>Collapse and expand any object or array; Shift+click applies to all related
+                    nodes.</li>
+                <li>The field selector closes with Esc or a click outside.</li>
             </ul>
             """.trimIndent(),
         )

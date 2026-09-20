@@ -18,6 +18,52 @@ The `app-json-explorer` component (and everything under
 as-is from `prepare-ai-contest/frontend`, then grew editing on top —
 see `docs/editor-plan.md` for the design decisions behind that.
 
+## Features
+
+**Explore**
+- Nested objects and arrays render as tables inside tables; an array of
+  objects becomes one column per item.
+- Click a table to flip it between horizontal and vertical orientation.
+- The field-select button (`▤`) hides columns. It closes with Esc or a
+  click outside.
+- Large arrays are paged; reveal more items when needed.
+
+**Search**
+
+One search box, three ways to look at the results:
+
+| Mode | A matching name shows | A matching value shows | Other names |
+|---|---|---|---|
+| **Matches** | its value collapsed (`▸ …` / `▸ { n }`) | the value | dimmed |
+| **Path** | its whole value, sub-tree included | the value | normal |
+| **Context** | its whole value, plus all siblings in full | the value, plus all siblings in full | non-matching ones dimmed |
+
+- **Names only** ignores values, so only attribute names match.
+- Matches are highlighted, and a line under the search box describes the
+  active mode.
+- [`samples/search-demo.json`](samples/search-demo.json) with the
+  walkthrough in [`samples/search-demo.md`](samples/search-demo.md)
+  demonstrates every mode.
+
+**Collapse and expand**
+- Every non-empty object or array has a `▾` button to collapse it, with or
+  without a search. Collapsed nodes show a chip (`▸ { 3 }`) you click to
+  expand.
+- Shift+click applies to all related nodes: those at the same structural
+  position, such as the same column in every row of an array.
+
+**Edit**
+- Every value can be edited in place; the type dropdown switches it between
+  string/number/boolean/null/object/array.
+- `×` / `+` add or remove object keys and array items.
+- "Raw JSON" edits the whole document as text; "Copy JSON" / "Download JSON"
+  get the result back out.
+
+**In the IDE**
+- Opens `.json` files in an extra tab next to the built-in editor. Edits go
+  through the IDE, so undo/redo work.
+- Light and dark themes follow the IDE theme.
+
 ## Screenshots
 
 Sample document: [`samples/canopy-demo.json`](samples/canopy-demo.json).
@@ -25,7 +71,7 @@ Sample document: [`samples/canopy-demo.json`](samples/canopy-demo.json).
 | | |
 |---|---|
 | ![Overview](docs/screenshots/overview.png) | ![Context search](docs/screenshots/context-search.png) |
-| Nested objects and arrays render as tables inside tables; arrays of objects become one column per item. | Filtering for "engineer" in *Context* mode keeps the matching items together with their surrounding structure. |
+| Nested objects and arrays render as tables inside tables; arrays of objects become one column per item. | Searching for "engineer" in *Context* mode keeps the matching items together with their surrounding structure. |
 
 ![Edit mode](docs/screenshots/edit-mode.png)
 

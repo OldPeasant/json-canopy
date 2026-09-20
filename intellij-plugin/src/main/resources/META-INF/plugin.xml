@@ -19,10 +19,28 @@
         </ul>
 
         <h3>Search</h3>
+        <p>One search box, three ways to look at the results:</p>
         <ul>
-            <li>Four filter modes: match anywhere, keys only, the containing object, or the
-                surrounding context. Context mode keeps the matching item together with the
-                structure around it.</li>
+            <li><b>Matches</b>: only what matched. A matching name shows with its value collapsed,
+                a matching value shows under a dimmed name.</li>
+            <li><b>Path</b>: every match with its hierarchy. A matching name shows its whole value,
+                and the names above the match show the way to it.</li>
+            <li><b>Context</b>: matches with their surroundings. All attributes of the containing
+                object are shown, including sibling sub-trees.</li>
+            <li><b>Names only</b> ignores values, for "give me every <code>description</code>"
+                searches.</li>
+            <li>Matches are highlighted, names that are only there for structure or context are
+                dimmed, and a line under the search box explains the active mode.</li>
+        </ul>
+
+        <h3>Collapse and expand</h3>
+        <ul>
+            <li>Every object and array has a &#9662; button to collapse it, with or without a
+                search. Collapsed nodes (including the ones a search leaves collapsed) show a chip
+                you click to expand.</li>
+            <li>Shift+click applies to all related nodes at once, such as the same column in every
+                row of an array.</li>
+            <li>The field selector closes with Esc or a click outside.</li>
         </ul>
 
         <h3>Edit in place</h3>
