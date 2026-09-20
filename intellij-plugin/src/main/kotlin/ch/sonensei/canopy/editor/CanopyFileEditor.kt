@@ -21,6 +21,8 @@ import ch.sonensei.canopy.theme.ThemeSync
 import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
 import java.beans.PropertyChangeSupport
+import java.nio.file.Files
+import java.nio.file.Path
 import javax.swing.JComponent
 import javax.swing.JLabel
 import javax.swing.JPanel
@@ -90,7 +92,29 @@ class CanopyFileEditor(
         // automatically when `this` (the FileEditor) is disposed, so
         // there's no matching removeDocumentListener call in dispose().
         document?.addDocumentListener(documentListener, this)
-        browser?.loadHTML(loadHostedHtml())
+        loadPage()
+    }
+
+    // The page's own URL: a real temp file, loaded as a plain file:// URL.
+    private var pageFile: Path? = null
+
+    // JBCefBrowser.loadHTML serves the page from a synthetic
+    // file:///jbcefbrowser/<n> URL through a JetBrains scheme handler. On
+    // some IDE/runtime combinations (seen on IntelliJ IDEA 2026.2 as a
+    // Flatpak) that handler is bypassed, Chromium tries to read the
+    // non-existent path itself and the tab shows "Your file couldn't be
+    // accessed". Loading a real file avoids the handler; loadHTML stays as
+    // the fallback if the temp file can't be written.
+    private fun loadPage() {
+        val html = loadHostedHtml()
+        try {
+            val path = Files.createTempFile("json-canopy-", ".html")
+            Files.writeString(path, html)
+            pageFile = path
+            browser?.loadURL(path.toUri().toString())
+        } catch (e: Exception) {
+            browser?.loadHTML(html)
+        }
     }
 
     private fun sendDocument() {
@@ -196,6 +220,7 @@ class CanopyFileEditor(
         // double-removal issue rather than prevent a leak.
         bridge?.dispose()
         browser?.dispose()
+        pageFile?.let { runCatching { Files.deleteIfExists(it) } }
     }
 
     private object EmptyFileEditorState : FileEditorState {

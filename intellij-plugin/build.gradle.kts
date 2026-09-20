@@ -41,6 +41,14 @@ intellijPlatform {
         version.set(project.version.toString())
         changeNotes.set(
             """
+            <h4>0.2.1</h4>
+            <ul>
+                <li>Fix: the JSON Canopy tab showed "Your file couldn't be accessed" on some IDEs
+                    (seen on IntelliJ IDEA 2026.2 as a Flatpak). The page is now loaded from a
+                    temporary file.</li>
+                <li>New icon for the standalone web app.</li>
+            </ul>
+            <h4>0.2.0</h4>
             <ul>
                 <li>New search: Matches, Path and Context modes, a "Names only" option, match
                     highlighting and dimmed context, with a description of the active mode.</li>
