@@ -3,7 +3,7 @@
 }
 
 @if (showChip) {
-  <button type="button" class="collapsed-chip" (click)="setCollapsed($event, false)" title="Click to expand">▸ {{ chipLabel }}</button>
+  <button type="button" class="collapsed-chip" (click)="setCollapsed($event, false)" title="Click to expand. Shift+click: expand all related nodes too">▸ {{ chipLabel }}</button>
 }
 
 @if (type === 'object' && !showChip) {
@@ -12,7 +12,7 @@
     <span class="val empty">&#123;&#125;</span>
   } @else {
     <div class="tw" [class.is-v]="orientation === 'v'" (click)="toggle($event)">
-      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Collapse this node">▾</button>
+      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Click to collapse. Shift+click: collapse all related nodes too">▾</button>
       <app-column-menu [keys]="objKeys" [path]="path" />
       <table>
         @if (orientation === 'h') {
@@ -76,7 +76,7 @@
   } @else if (isArrayOfObjects) {
 
     <div class="tw" [class.is-v]="orientation === 'v'" (click)="toggle($event)">
-      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Collapse this node">▾</button>
+      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Click to collapse. Shift+click: collapse all related nodes too">▾</button>
       <app-column-menu [keys]="arrayKeys" [path]="path" />
       <table>
         @if (orientation === 'h') {
@@ -184,7 +184,7 @@
   } @else {
 
     <div class="tw" [class.is-v]="orientation === 'v'" (click)="toggle($event)">
-      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Collapse this node">▾</button>
+      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Click to collapse. Shift+click: collapse all related nodes too">▾</button>
       <table>
         @if (orientation === 'h') {
           <tbody>

@@ -338,6 +338,7 @@ th.idx .del-btn {
 
 /* Keys shown for structure or context rather than because they matched. */
 table th.dim {
-  opacity: 0.5;
+  opacity: 0.4;
   font-weight: 400;
+  font-style: italic;
 }

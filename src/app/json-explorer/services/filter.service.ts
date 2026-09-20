@@ -8,8 +8,9 @@ import { CollapseService } from './collapse.service';
 //               collapsed; a value match shows the value under a dimmed key.
 //               Ancestors are shown only as dimmed path keys.
 //   'path'    — every matching key or value, with its full hierarchy. A key
-//               match also shows its value; ancestors show their normal keys
-//               but only the branches leading to a match.
+//               match also shows its whole value, sub-tree included;
+//               ancestors show their normal keys but only the branches
+//               leading to a match.
 //   'context' — a match is shown with everything around it: all attributes of
 //               the containing object, sibling subtrees included. Ancestors
 //               show only the path; non-matching context is dimmed.
@@ -86,9 +87,15 @@ export class FilterService {
     return Object.entries(value as Record<string, unknown>).some(([k, v]) => this.treeMatch(k, v));
   }
 
-  // 'context' mode: this node matched, so its whole subtree is shown.
+  // This node matched in a way that shows its whole subtree: any match in
+  // 'context' mode, a name match in 'path' mode.
   forces(key: string | null, value: unknown): boolean {
-    return this.active && this.mode() === 'context' && this.directMatch(key, value);
+    if (!this.active) return false;
+    switch (this.mode()) {
+      case 'context': return this.directMatch(key, value);
+      case 'path': return this.keyMatch(key);
+      default: return false;
+    }
   }
 
   // 'context' mode: one entry of this sibling group matched directly, so
@@ -98,14 +105,11 @@ export class FilterService {
     return entries.some(([k, v]) => this.directMatch(k, v));
   }
 
-  // Whether the filter wants this node's value collapsed behind a click: its
-  // key matched but nothing about the value did. 'matches' mode collapses
-  // any such value; 'path' mode collapses only containers (a primitive value
-  // is small and is the attribute's content).
+  // Whether the filter wants this node's value collapsed behind a click: only
+  // in 'matches' mode, when its key matched but nothing about the value did.
   collapsedByFilter(key: string | null, value: unknown): boolean {
-    if (!this.active || this.mode() === 'context') return false;
-    if (!this.keyMatch(key) || this.valueMatch(value) || this.descendantMatch(value)) return false;
-    return this.mode() === 'matches' || (value !== null && typeof value === 'object');
+    if (!this.active || this.mode() !== 'matches') return false;
+    return this.keyMatch(key) && !this.valueMatch(value) && !this.descendantMatch(value);
   }
 
   // Keys that are only there for structure or context, not because they matched.

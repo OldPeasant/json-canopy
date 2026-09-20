@@ -18,6 +18,14 @@ or **Names only** resets any collapse/expand clicks you made.
 2. Click `▾` above `offices`. The whole node collapses to a chip like `▸ [ 3 ]`.
 3. Click the chip to expand again. This works for any non-empty object or array, at any depth.
 
+## Modes at a glance
+
+| Mode | A matching name shows | A matching value shows | Other names |
+|---|---|---|---|
+| **Matches** | collapsed chip `▸ …` / `▸ { n }` | the value | dimmed |
+| **Path** | its whole value, sub-tree included | the value | normal |
+| **Context** | its whole value, plus all siblings in full | the value, plus all siblings in full | non-matching ones dimmed |
+
 ## 1. Matches: only what matched
 
 | Term | What to look for |
@@ -35,7 +43,7 @@ Switch the mode to **Path**.
 |---|---|
 | `zurich` | The Zurich row, with its `city` name shown normally (not dimmed) and `zurich` highlighted. |
 | `description` | Now the description text is shown next to the matching name, and the name is highlighted. |
-| `supplier` | Still collapsed (`▸ { 2 }`), because a matching object or array is not expanded unless something inside it matches too. |
+| `supplier` | Unlike Matches, each `supplier` shows its **whole content** (`name` and `country`) next to the highlighted name. A matching name always shows its full value. |
 | `germany` | The chain `products` → `widget` → `supplier` → `country` → `Germany`. No other product fields. |
 | `small` | Two matches in the same product: the `small` tag and the text of `description`. Other fields of `widget` (`name`, `price`) stay hidden. |
 
@@ -60,7 +68,8 @@ The **Names only** checkbox ignores values, so only attribute names match.
 
 ## 5. Clicking to expand (any mode)
 
-- Search `supplier` in **Matches** or **Path** to get the collapsed `▸ { 2 }` chips, and click one. The whole node expands and shows all its content, including parts that don't match.
+- Search `supplier` in **Matches** to get the collapsed `▸ { 2 }` chips, and click one. The whole node expands and shows all its content, including parts that don't match. The other chip stays collapsed.
+- **Shift+click** a chip (or a `▾` button) applies the click to all *related* nodes: those at the same structural position, like the same column in every row of an array. Try it in **Matches** with `email`: the staff `email` cells show `▸ …` chips. A plain click expands only that address; a Shift+click expands every staff `email` cell, in all offices.
 - Manual collapse works together with a search: with `price` in **Context**, use `▾` on a product's `supplier` to collapse just that node. The rest of the record stays visible.
 
 ## 6. Tips

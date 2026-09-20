@@ -59,11 +59,11 @@ export class JsonTableComponent implements OnInit {
   // Expanding a node by hand shows everything below it, whatever the filter
   // would otherwise hide there.
   private get effectiveForce(): boolean {
-    return this.forceVisible || this.collapse.get(this.uid) === false;
+    return this.forceVisible || this.collapse.get(this.uid, this.path) === false;
   }
 
   get collapsed(): boolean {
-    return this.collapse.get(this.uid) ?? this.filterCollapsed;
+    return this.collapse.get(this.uid, this.path) ?? this.filterCollapsed;
   }
 
   get isContainer(): boolean { return this.type === 'object' || this.type === 'array'; }
@@ -85,7 +85,8 @@ export class JsonTableComponent implements OnInit {
 
   setCollapsed(event: Event, collapsed: boolean): void {
     event.stopPropagation();
-    this.collapse.set(this.uid, collapsed);
+    // Shift-click applies to every related node (same structural path).
+    this.collapse.set(this.uid, this.path, collapsed, (event as MouseEvent).shiftKey);
     this.colSync.scheduleSync();
   }
 
