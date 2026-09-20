@@ -1,0 +1,59 @@
+{
+  "project": {
+    "name": "Website Relaunch",
+    "description": "Full rebuild of the marketing site for the Q4 launch.",
+    "owner": { "name": "Priya Shah", "role": "Product Lead" }
+  },
+  "items": [
+    {
+      "id": 1,
+      "type": "todo",
+      "title": "Write hero copy",
+      "status": "todo",
+      "assignee": "Alex",
+      "description": "Draft the headline and subhead for the new homepage hero."
+    },
+    {
+      "id": 2,
+      "type": "bug",
+      "title": "Nav overlaps logo on mobile",
+      "status": "open",
+      "assignee": "Priya",
+      "description": "The nav menu covers the logo below 400px width."
+    },
+    {
+      "id": 3,
+      "type": "todo",
+      "title": "Set up analytics",
+      "status": "done",
+      "assignee": "Alex",
+      "description": "Configure the new event tracking plan."
+    },
+    {
+      "id": 4,
+      "type": "note",
+      "title": "Client feedback call",
+      "status": "n/a",
+      "notes": "Client wants a lighter color palette; revisit after the first draft."
+    },
+    {
+      "id": 5,
+      "type": "todo",
+      "title": "Migrate blog posts",
+      "status": "todo",
+      "assignee": "Sam"
+    },
+    {
+      "id": 6,
+      "type": "event",
+      "title": "Design review",
+      "status": "scheduled",
+      "date": "2026-10-02",
+      "description": "Walk through the new templates with stakeholders."
+    }
+  ],
+  "archive": {
+    "note": "Old site retired 2025-01-01, kept for reference only.",
+    "previousOwner": { "name": "Jordan Lee", "role": "Former Product Lead" }
+  }
+}
