@@ -1,4 +1,4 @@
-import { Component, Input, inject, signal } from '@angular/core';
+import { Component, ElementRef, HostListener, Input, inject, signal } from '@angular/core';
 import { NodeVisibilityService } from '../services/node-visibility.service';
 
 @Component({
@@ -12,6 +12,7 @@ export class ColumnMenuComponent {
   @Input({ required: true }) path: string = '';
 
   private visibility = inject(NodeVisibilityService);
+  private host = inject<ElementRef<HTMLElement>>(ElementRef);
 
   readonly open = signal(false);
 
@@ -25,6 +26,20 @@ export class ColumnMenuComponent {
 
   get hiddenCount(): number {
     return this.keys.filter(k => this.isHidden(k)).length;
+  }
+
+  // Esc, or a press anywhere outside this menu (including on another
+  // column menu), closes it.
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.open.set(false);
+  }
+
+  @HostListener('document:mousedown', ['$event'])
+  onOutsidePress(event: MouseEvent): void {
+    if (this.open() && !this.host.nativeElement.contains(event.target as Node)) {
+      this.open.set(false);
+    }
   }
 
   toggleOpen(event: Event): void {
