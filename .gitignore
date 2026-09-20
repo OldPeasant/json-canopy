@@ -47,3 +47,6 @@ Thumbs.db
 *.pem
 *.crt
 *.key
+
+# Website files for sonensei.ch (built by hand, not versioned)
+/site/
