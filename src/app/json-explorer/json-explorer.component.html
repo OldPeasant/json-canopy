@@ -3,7 +3,7 @@
     <div class="filter-box">
       <input
         type="text"
-        placeholder="Filter by key or value…"
+        placeholder="Search names and values…"
         [value]="filter.text()"
         (input)="onFilterInput($event)"
       />
@@ -24,6 +24,10 @@
         </button>
       }
     </div>
+    <label class="keys-only" title="Search attribute names only; ignore values">
+      <input type="checkbox" [checked]="filter.keysOnly()" (change)="filter.setKeysOnly($any($event.target).checked)" />
+      Names only
+    </label>
     <button
       type="button"
       class="mode-toggle"
@@ -35,6 +39,9 @@
       {{ editMode.readOnly() ? 'Read-only' : (editMode.enabled() ? 'Go to view mode' : 'Go to edit mode') }}
     </button>
   </div>
+  @if (filter.text()) {
+    <div class="filter-hint"><strong>{{ filter.mode() }}:</strong> {{ modeHint }}</div>
+  }
   <div class="json-output">
     <app-json-table [value]="value" path="" (valueChange)="valueChange.emit($event)" />
   </div>

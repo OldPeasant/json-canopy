@@ -146,3 +146,20 @@
   flex: 1;
   overflow: auto;
 }
+
+.keys-only {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.filter-hint {
+  margin-bottom: 0.5rem;
+  color: var(--text-faint);
+  font-size: 0.75rem;
+}

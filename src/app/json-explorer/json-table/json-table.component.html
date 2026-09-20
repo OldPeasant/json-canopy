@@ -1,19 +1,26 @@
-<app-editable-value [value]="value" (valueChange)="onSelfChange($event)" />
+@if (!(showChip && !isContainer)) {
+  <app-editable-value [value]="value" (valueChange)="onSelfChange($event)" />
+}
 
-@if (type === 'object') {
+@if (showChip) {
+  <button type="button" class="collapsed-chip" (click)="setCollapsed($event, false)" title="Click to expand">▸ {{ chipLabel }}</button>
+}
+
+@if (type === 'object' && !showChip) {
 
   @if (objEntries.length === 0) {
     <span class="val empty">&#123;&#125;</span>
   } @else {
     <div class="tw" [class.is-v]="orientation === 'v'" (click)="toggle($event)">
+      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Collapse this node">▾</button>
       <app-column-menu [keys]="objKeys" [path]="path" />
       <table>
         @if (orientation === 'h') {
           <thead>
             <tr>
               @for (k of visibleObjKeys; track k) {
-                <th [attr.data-col-key]="colKey(k)">
-                  {{ k }}
+                <th [attr.data-col-key]="colKey(k)" [class.dim]="objDim(k)">
+                  <app-hl [text]="k" kind="key" />
                   @if (editMode.enabled()) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onEntryDelete(k)" title="Delete key">&times;</button>
                   }
@@ -24,7 +31,7 @@
           <tbody>
             <tr>
               @for (e of visibleObjEntries; track e[0]) {
-                <td [attr.data-col-key]="colKey(e[0])"><app-json-table [value]="e[1]" [path]="objChildPath(e[0])" [forceVisible]="entryForceVisible(e[0], e[1])" (valueChange)="onEntryChange(e[0], $event)" /></td>
+                <td [attr.data-col-key]="colKey(e[0])"><app-json-table [value]="e[1]" [path]="objChildPath(e[0])" [forceVisible]="entryForceVisible(e[0], e[1])" [filterCollapsed]="entryCollapsed(e[0], e[1])" [uid]="objChildUid(e[0])" (valueChange)="onEntryChange(e[0], $event)" /></td>
               }
             </tr>
           </tbody>
@@ -32,13 +39,13 @@
           <tbody>
             @for (e of visibleObjEntries; track e[0]) {
               <tr>
-                <th [attr.data-col-key]="colKey('__k__')">
-                  {{ e[0] }}
+                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="objDim(e[0])">
+                  <app-hl [text]="e[0]" kind="key" />
                   @if (editMode.enabled()) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onEntryDelete(e[0])" title="Delete key">&times;</button>
                   }
                 </th>
-                <td [attr.data-col-key]="colKey('__v__')"><app-json-table [value]="e[1]" [path]="objChildPath(e[0])" [forceVisible]="entryForceVisible(e[0], e[1])" (valueChange)="onEntryChange(e[0], $event)" /></td>
+                <td [attr.data-col-key]="colKey('__v__')"><app-json-table [value]="e[1]" [path]="objChildPath(e[0])" [forceVisible]="entryForceVisible(e[0], e[1])" [filterCollapsed]="entryCollapsed(e[0], e[1])" [uid]="objChildUid(e[0])" (valueChange)="onEntryChange(e[0], $event)" /></td>
               </tr>
             }
           </tbody>
@@ -62,20 +69,21 @@
     </span>
   }
 
-} @else if (type === 'array') {
+} @else if (type === 'array' && !showChip) {
 
   @if (arr.length === 0) {
     <span class="val empty">[]</span>
   } @else if (isArrayOfObjects) {
 
     <div class="tw" [class.is-v]="orientation === 'v'" (click)="toggle($event)">
+      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Collapse this node">▾</button>
       <app-column-menu [keys]="arrayKeys" [path]="path" />
       <table>
         @if (orientation === 'h') {
           <thead>
             <tr>
               @for (k of visibleArrayKeys; track k) {
-                <th [attr.data-col-key]="colKey(k)">{{ k }}</th>
+                <th [attr.data-col-key]="colKey(k)" [class.dim]="columnDim(k)"><app-hl [text]="k" kind="key" /></th>
               }
               @if (hasNonObjectItems) {
                 <th [attr.data-col-key]="colKey('__val__')">value</th>
@@ -91,7 +99,7 @@
                 @for (k of visibleArrayKeys; track k) {
                   <td>
                     @if (hasCell(arr[i], k)) {
-                      <app-json-table [value]="cell(arr[i], k)" [path]="arrCellPath(k)" [forceVisible]="cellForceVisible(arr[i], k)" (valueChange)="onCellChange(i, k, $event)" />
+                      <app-json-table [value]="cell(arr[i], k)" [path]="arrCellPath(k)" [forceVisible]="cellForceVisible(arr[i], k)" [filterCollapsed]="cellCollapsed(arr[i], k)" [uid]="cellUid(i, k)" (valueChange)="onCellChange(i, k, $event)" />
                       @if (editMode.enabled()) {
                         <button type="button" class="del-btn cell-del" (click)="$event.stopPropagation(); onCellDelete(i, k)" title="Delete key from this row">&times;</button>
                       }
@@ -103,7 +111,7 @@
                 @if (hasNonObjectItems) {
                   <td [attr.data-col-key]="colKey('__val__')">
                     @if (!isObjectItem(arr[i])) {
-                      <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" (valueChange)="onItemChange(i, $event)" />
+                      <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" [uid]="itemUid(i)" (valueChange)="onItemChange(i, $event)" />
                     }
                   </td>
                 }
@@ -132,11 +140,11 @@
           <tbody>
             @for (k of visibleArrayKeys; track k) {
               <tr>
-                <th [attr.data-col-key]="colKey('__k__')">{{ k }}</th>
+                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="columnDim(k)"><app-hl [text]="k" kind="key" /></th>
                 @for (i of visibleArrayIndices; track i) {
                   <td>
                     @if (hasCell(arr[i], k)) {
-                      <app-json-table [value]="cell(arr[i], k)" [path]="arrCellPath(k)" [forceVisible]="cellForceVisible(arr[i], k)" (valueChange)="onCellChange(i, k, $event)" />
+                      <app-json-table [value]="cell(arr[i], k)" [path]="arrCellPath(k)" [forceVisible]="cellForceVisible(arr[i], k)" [filterCollapsed]="cellCollapsed(arr[i], k)" [uid]="cellUid(i, k)" (valueChange)="onCellChange(i, k, $event)" />
                       @if (editMode.enabled()) {
                         <button type="button" class="del-btn cell-del" (click)="$event.stopPropagation(); onCellDelete(i, k)" title="Delete key from this row">&times;</button>
                       }
@@ -153,7 +161,7 @@
                 @for (i of visibleArrayIndices; track i) {
                   <td>
                     @if (!isObjectItem(arr[i])) {
-                      <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" (valueChange)="onItemChange(i, $event)" />
+                      <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" [uid]="itemUid(i)" (valueChange)="onItemChange(i, $event)" />
                     }
                   </td>
                 }
@@ -176,13 +184,14 @@
   } @else {
 
     <div class="tw" [class.is-v]="orientation === 'v'" (click)="toggle($event)">
+      <button type="button" class="node-toggle" (click)="setCollapsed($event, true)" title="Collapse this node">▾</button>
       <table>
         @if (orientation === 'h') {
           <tbody>
             <tr>
               @for (i of visibleArrItemIndices; track i) {
                 <td>
-                  <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" (valueChange)="onItemChange(i, $event)" />
+                  <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" [uid]="itemUid(i)" (valueChange)="onItemChange(i, $event)" />
                   @if (editMode.enabled()) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onItemDelete(i)" title="Delete item">&times;</button>
                   }
@@ -195,7 +204,7 @@
             @for (i of visibleArrItemIndices; track i) {
               <tr>
                 <td>
-                  <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" (valueChange)="onItemChange(i, $event)" />
+                  <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" [uid]="itemUid(i)" (valueChange)="onItemChange(i, $event)" />
                   @if (editMode.enabled()) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onItemDelete(i)" title="Delete item">&times;</button>
                   }

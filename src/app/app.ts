@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { JsonExplorerComponent } from './json-explorer/json-explorer.component';
 import { EditModeService } from './json-explorer/services/edit-mode.service';
 import { HostBridgeService } from './json-explorer/services/host-bridge.service';
+import { CollapseService } from './json-explorer/services/collapse.service';
 import { RevealService } from './json-explorer/services/reveal.service';
 
 @Component({
@@ -13,6 +14,7 @@ import { RevealService } from './json-explorer/services/reveal.service';
 export class App {
   private editMode = inject(EditModeService);
   private reveal = inject(RevealService);
+  private collapse = inject(CollapseService);
   protected hostBridge = inject(HostBridgeService);
 
   protected readonly data = signal<unknown>(undefined);
@@ -160,6 +162,7 @@ export class App {
       // view preference worth carrying over to the next file — unlike
       // orientation/hidden-column state, which deliberately persists.
       this.reveal.clear();
+      this.collapse.clear();
     } catch (e) {
       this.error.set(e instanceof Error ? e.message : 'Invalid JSON');
     }

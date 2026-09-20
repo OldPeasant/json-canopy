@@ -1,100 +1,136 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
+import { CollapseService } from './collapse.service';
 
 // A "node" is a single key/value pair anywhere in the tree (an object entry,
-// an array item, or an array-of-objects cell). Filtering works on the whole
-// tree at once:
-//   1. Find every node whose key (and, depending on mode, value) contains
-//      the search text.
-//   2. Keep those nodes visible, plus every ancestor (so matches stay
-//      reachable) and every descendant (so a matched branch shows in full).
-//   3. Depending on mode, also widen visibility to a match's siblings (see
-//      FilterMode below).
-//   4. Hide everything else.
-export type FilterMode = 'value' | 'field' | 'object' | 'context';
+// an array item, or an array-of-objects cell). Searching works on the whole
+// tree at once and offers three views of the same matches:
+//   'matches' — only what matched. A key match shows the key with its value
+//               collapsed; a value match shows the value under a dimmed key.
+//               Ancestors are shown only as dimmed path keys.
+//   'path'    — every matching key or value, with its full hierarchy. A key
+//               match also shows its value; ancestors show their normal keys
+//               but only the branches leading to a match.
+//   'context' — a match is shown with everything around it: all attributes of
+//               the containing object, sibling subtrees included. Ancestors
+//               show only the path; non-matching context is dimmed.
+// Anything the filter leaves collapsed can be expanded by clicking it (see
+// CollapseService).
+export type FilterMode = 'matches' | 'path' | 'context';
 
 @Injectable({ providedIn: 'root' })
 export class FilterService {
+  private collapse = inject(CollapseService);
+
   readonly text = signal('');
-  // 'value'   — match key or value text; show only the path to each match.
-  // 'field'   — match key names only (ignore value text); show only the
-  //             path to each match. For "give me every 'description'
-  //             field" style searches, where matching on value text too
-  //             would pull in unrelated fields that merely mention the word.
-  // 'object'  — match key or value text; also show every sibling of the
-  //             object/row directly containing the match, in full, so the
-  //             whole record is visible instead of just the one field that
-  //             matched.
-  // 'context' — match key or value text; like 'object', but widens at every
-  //             ancestor level up to the root, not just the immediate
-  //             container.
-  readonly mode = signal<FilterMode>('value');
+  readonly mode = signal<FilterMode>('path');
+  // When set, only keys are searched; value text is ignored.
+  readonly keysOnly = signal(false);
 
   set(value: string): void {
     this.text.set(value);
+    this.collapse.clear();
   }
 
   setMode(mode: FilterMode): void {
     this.mode.set(mode);
+    this.collapse.clear();
+  }
+
+  setKeysOnly(on: boolean): void {
+    this.keysOnly.set(on);
+    this.collapse.clear();
   }
 
   clear(): void {
-    this.text.set('');
+    this.set('');
   }
 
   private term(): string {
     return this.text().trim().toLowerCase();
   }
 
-  // True if this exact node — its key, or (unless in 'field' mode) its
-  // value if the value is a primitive — contains the search text. Does not
-  // look at descendants.
-  directMatch(key: string | null, value: unknown): boolean {
+  get active(): boolean {
+    return this.term() !== '';
+  }
+
+  keyMatch(key: string | null): boolean {
     const term = this.term();
-    if (!term) return true;
-    if (key !== null && key.toLowerCase().includes(term)) return true;
-    if (this.mode() === 'field') return false;
-    if (value === null || value === undefined) return false;
-    if (typeof value === 'object') return false;
+    return !!term && key !== null && key.toLowerCase().includes(term);
+  }
+
+  // Primitive values only; containers match through their descendants.
+  valueMatch(value: unknown): boolean {
+    const term = this.term();
+    if (!term || this.keysOnly()) return false;
+    if (value === null || value === undefined || typeof value === 'object') return false;
     return String(value).toLowerCase().includes(term);
   }
 
+  // True if this exact node — its key, or its value if it's a primitive —
+  // contains the search text. Does not look at descendants.
+  directMatch(key: string | null, value: unknown): boolean {
+    if (!this.active) return true;
+    return this.keyMatch(key) || this.valueMatch(value);
+  }
+
   // True if this node matches directly, or if any node in its subtree does.
-  // Used to decide whether a node should be visible as an ancestor of a match.
   treeMatch(key: string | null, value: unknown): boolean {
-    const term = this.term();
-    if (!term) return true;
+    if (!this.active) return true;
     if (this.directMatch(key, value)) return true;
+    return this.descendantMatch(value);
+  }
+
+  descendantMatch(value: unknown): boolean {
     if (value === null || typeof value !== 'object') return false;
-    if (Array.isArray(value)) {
-      return value.some(item => this.treeMatch(null, item));
-    }
+    if (Array.isArray(value)) return value.some(item => this.treeMatch(null, item));
     return Object.entries(value as Record<string, unknown>).some(([k, v]) => this.treeMatch(k, v));
   }
 
-  // True in 'context' mode when one of the entries in this sibling group
-  // matches directly (key or primitive value). Such a group is the matching
-  // node itself, so every sibling is shown in full, including its whole
-  // subtree — unlike ancestor groups, which only get their keys widened.
-  fullGroupMatch(entries: Array<[string | null, unknown]>): boolean {
-    if (!this.term() || this.mode() !== 'context') return false;
+  // 'context' mode: this node matched, so its whole subtree is shown.
+  forces(key: string | null, value: unknown): boolean {
+    return this.active && this.mode() === 'context' && this.directMatch(key, value);
+  }
+
+  // 'context' mode: one entry of this sibling group matched directly, so
+  // every sibling is shown in full, subtree included.
+  groupMatch(entries: Array<[string | null, unknown]>): boolean {
+    if (!this.active || this.mode() !== 'context') return false;
     return entries.some(([k, v]) => this.directMatch(k, v));
   }
 
-  // True if the current mode wants every entry in this sibling group shown
-  // in full because the search matched inside the group. 'object' mode only
-  // widens the group directly containing a match (a direct match on one of
-  // the entries); 'context' mode widens every group along the path to a
-  // match (any entry whose subtree contains a match), which cascades the
-  // widening up through every ancestor level.
-  groupMatch(entries: Array<[string | null, unknown]>): boolean {
-    if (!this.term()) return false;
+  // Whether the filter wants this node's value collapsed behind a click: its
+  // key matched but nothing about the value did. 'matches' mode collapses
+  // any such value; 'path' mode collapses only containers (a primitive value
+  // is small and is the attribute's content).
+  collapsedByFilter(key: string | null, value: unknown): boolean {
+    if (!this.active || this.mode() === 'context') return false;
+    if (!this.keyMatch(key) || this.valueMatch(value) || this.descendantMatch(value)) return false;
+    return this.mode() === 'matches' || (value !== null && typeof value === 'object');
+  }
+
+  // Keys that are only there for structure or context, not because they matched.
+  keyDim(key: string | null, value: unknown): boolean {
+    if (!this.active) return false;
     switch (this.mode()) {
-      case 'object':
-        return entries.some(([k, v]) => this.directMatch(k, v));
-      case 'context':
-        return entries.some(([k, v]) => this.treeMatch(k, v));
-      default:
-        return false;
+      case 'matches': return !this.keyMatch(key);
+      case 'context': return !this.treeMatch(key, value);
+      default: return false;
     }
+  }
+
+  // Splits text around case-insensitive occurrences of the search term.
+  highlight(text: string, isKey: boolean): Array<{ t: string; hit: boolean }> {
+    const term = this.term();
+    if (!term || (!isKey && this.keysOnly())) return [{ t: text, hit: false }];
+    const lower = text.toLowerCase();
+    const parts: Array<{ t: string; hit: boolean }> = [];
+    let from = 0;
+    for (let i = lower.indexOf(term); i !== -1; i = lower.indexOf(term, from)) {
+      if (i > from) parts.push({ t: text.slice(from, i), hit: false });
+      parts.push({ t: text.slice(i, i + term.length), hit: true });
+      from = i + term.length;
+    }
+    if (from < text.length) parts.push({ t: text.slice(from), hit: false });
+    return parts.length ? parts : [{ t: text, hit: false }];
   }
 }

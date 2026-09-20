@@ -1,10 +1,12 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { JsonType, defaultForType, typeOf } from '../json-edit.util';
+import { HighlightComponent } from '../highlight/highlight.component';
 import { EditModeService } from '../services/edit-mode.service';
 
 @Component({
   selector: 'app-editable-value',
   standalone: true,
+  imports: [HighlightComponent],
   templateUrl: './editable-value.component.html',
   styleUrl: './editable-value.component.css',
 })

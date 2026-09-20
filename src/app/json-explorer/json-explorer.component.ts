@@ -29,11 +29,14 @@ export class JsonExplorerComponent {
 
   // Shown as buttons next to the search box, in this order.
   protected readonly filterModes: { value: FilterMode; label: string; hint: string }[] = [
-    { value: 'value', label: 'Any', hint: 'Match key or value text; show only the path to each match.' },
-    { value: 'field', label: 'Fields', hint: "Match key names only (e.g. \"description\"); show only the path to each match." },
-    { value: 'object', label: 'Object', hint: 'Match key or value text; show the whole object containing each match.' },
-    { value: 'context', label: 'Context', hint: "Match key or value text; show the whole matching object (siblings with all sub-nodes) plus every ancestor's siblings." },
+    { value: 'matches', label: 'Matches', hint: 'Only what matched. A matching name shows collapsed; a matching value shows under a dimmed name.' },
+    { value: 'path', label: 'Path', hint: 'Every match with its hierarchy: each match plus the names above it.' },
+    { value: 'context', label: 'Context', hint: 'Matches with their surroundings: all attributes of the containing object, including sibling sub-trees.' },
   ];
+
+  protected get modeHint(): string {
+    return this.filterModes.find(m => m.value === this.filter.mode())!.hint;
+  }
 
   onFilterInput(event: Event): void {
     this.filter.set((event.target as HTMLInputElement).value);

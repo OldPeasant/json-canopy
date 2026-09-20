@@ -1,0 +1,52 @@
+{
+  "company": "Northwind Trading",
+  "offices": [
+    {
+      "city": "Zurich",
+      "country": "Switzerland",
+      "address": { "street": "Bahnhofstrasse 1", "zip": "8001" },
+      "notes": "Main office",
+      "staff": [
+        { "name": "Anna Keller", "role": "Engineer", "email": "anna@northwind.example" },
+        { "name": "Marco Bianchi", "role": "Designer", "email": "marco@northwind.example" }
+      ]
+    },
+    {
+      "city": "Geneva",
+      "country": "Switzerland",
+      "address": { "street": "Rue du Rhone 12", "zip": "1204" },
+      "notes": "Please email the office first",
+      "staff": [
+        { "name": "Lena Fischer", "role": "Sales", "email": "lena@northwind.example" }
+      ]
+    },
+    {
+      "city": "Basel",
+      "country": "Switzerland",
+      "address": { "street": "Freie Strasse 5", "zip": "4001" },
+      "notes": "Warehouse",
+      "staff": []
+    }
+  ],
+  "products": {
+    "widget": {
+      "name": "Widget",
+      "price": 9.5,
+      "tags": ["hardware", "small"],
+      "description": "A small widget for everyday use",
+      "supplier": { "name": "Acme", "country": "Germany" }
+    },
+    "gadget": {
+      "name": "Gadget",
+      "price": 49,
+      "tags": ["electronics", "portable"],
+      "description": "A portable gadget with a long battery life",
+      "supplier": { "name": "Globex", "country": "Japan" }
+    }
+  },
+  "settings": {
+    "currency": "CHF",
+    "language": "en",
+    "notifications": { "email": true, "sms": false }
+  }
+}

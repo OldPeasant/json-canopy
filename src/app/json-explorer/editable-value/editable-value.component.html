@@ -42,10 +42,10 @@
   @if (type === 'null') {
     <span class="val null">null</span>
   } @else if (type === 'boolean') {
-    <span class="val bool">{{ value }}</span>
+    <span class="val bool"><app-hl [text]="'' + value" /></span>
   } @else if (type === 'number') {
-    <span class="val num">{{ value }}</span>
+    <span class="val num"><app-hl [text]="'' + value" /></span>
   } @else if (type === 'string') {
-    <span class="val str">{{ value }}</span>
+    <span class="val str"><app-hl [text]="'' + value" /></span>
   }
 }

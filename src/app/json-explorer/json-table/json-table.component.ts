@@ -3,9 +3,11 @@ import { TableOrientationService } from '../services/table-orientation.service';
 import { ColumnSyncService } from '../services/column-sync.service';
 import { FilterService } from '../services/filter.service';
 import { NodeVisibilityService } from '../services/node-visibility.service';
+import { CollapseService } from '../services/collapse.service';
 import { RevealService } from '../services/reveal.service';
 import { ColumnMenuComponent } from '../column-menu/column-menu.component';
 import { EditableValueComponent } from '../editable-value/editable-value.component';
+import { HighlightComponent } from '../highlight/highlight.component';
 import { EditModeService } from '../services/edit-mode.service';
 import { estimateAvgItemBytes, initialRevealCount } from '../reveal.util';
 import {
@@ -22,7 +24,7 @@ import {
 @Component({
   selector: 'app-json-table',
   standalone: true,
-  imports: [JsonTableComponent, ColumnMenuComponent, EditableValueComponent],
+  imports: [JsonTableComponent, ColumnMenuComponent, EditableValueComponent, HighlightComponent],
   templateUrl: './json-table.component.html',
   styleUrl: './json-table.component.css',
 })
@@ -33,6 +35,11 @@ export class JsonTableComponent implements OnInit {
   // itself forced) — every node below such a match stays visible, no matter
   // what it contains.
   @Input() forceVisible: boolean = false;
+  // Instance id (unlike `path`, unique per array row) for collapse state.
+  @Input() uid: string = '';
+  // The filter's default for this node: show its key but keep the value
+  // collapsed behind a click.
+  @Input() filterCollapsed: boolean = false;
 
   // Emits the new value for THIS node — either a direct edit at this node
   // (leaf value or type switch, handled by onSelfChange) or a rebuilt
@@ -47,6 +54,40 @@ export class JsonTableComponent implements OnInit {
   protected filter = inject(FilterService);
   protected editMode = inject(EditModeService);
   protected reveal = inject(RevealService);
+  private collapse = inject(CollapseService);
+
+  // Expanding a node by hand shows everything below it, whatever the filter
+  // would otherwise hide there.
+  private get effectiveForce(): boolean {
+    return this.forceVisible || this.collapse.get(this.uid) === false;
+  }
+
+  get collapsed(): boolean {
+    return this.collapse.get(this.uid) ?? this.filterCollapsed;
+  }
+
+  get isContainer(): boolean { return this.type === 'object' || this.type === 'array'; }
+
+  private get hasContent(): boolean {
+    if (this.type === 'object') return this.objEntries.length > 0;
+    if (this.type === 'array') return this.arr.length > 0;
+    return true;
+  }
+
+  // A collapsed node renders a clickable chip in place of its content.
+  get showChip(): boolean { return this.collapsed && this.hasContent; }
+
+  get chipLabel(): string {
+    if (this.type === 'object') return `{ ${this.objEntries.length} }`;
+    if (this.type === 'array') return `[ ${this.arr.length} ]`;
+    return '…';
+  }
+
+  setCollapsed(event: Event, collapsed: boolean): void {
+    event.stopPropagation();
+    this.collapse.set(this.uid, collapsed);
+    this.colSync.scheduleSync();
+  }
 
   get orientation(): 'h' | 'v' { return this.orientations.read(this.path); }
 
@@ -60,9 +101,8 @@ export class JsonTableComponent implements OnInit {
     return Object.keys(this.value as Record<string, unknown>);
   }
 
-  // In 'object'/'context' mode, a match anywhere among this object's own
-  // entries widens visibility to every entry here, not just the ones that
-  // themselves match — showing the whole record around the match.
+  // In 'context' mode, a direct match among this object's own entries widens
+  // visibility to every entry here — showing the whole record around the match.
   private get objGroupMatch(): boolean {
     return this.filter.groupMatch(this.objEntries);
   }
@@ -121,9 +161,9 @@ export class JsonTableComponent implements OnInit {
     return this.arr.some(item => !this.isObjectItem(item));
   }
 
-  // Whether the row at this item is itself a "widened" group in
-  // 'object'/'context' mode — i.e. one of its own cells matched, so every
-  // other cell in the row should show too, to render the full record.
+  // Whether the row at this item is itself a "widened" group in 'context'
+  // mode — i.e. one of its own cells matched, so every other cell in the row
+  // should show too, to render the full record.
   rowGroupMatch(item: unknown): boolean {
     return this.isObjectItem(item) && this.filter.groupMatch(this.objEntriesOf(item));
   }
@@ -139,7 +179,7 @@ export class JsonTableComponent implements OnInit {
   get visibleArrayKeys(): string[] {
     return this.arrayKeys.filter(k => {
       if (this.visibility.isHidden(this.colKey(k))) return false;
-      if (this.forceVisible || this.filter.directMatch(k, undefined)) return true;
+      if (this.effectiveForce || this.filter.directMatch(k, undefined)) return true;
       return this.arr.some(item => {
         if (!this.hasCell(item, k)) return false;
         return this.filter.treeMatch(k, this.cell(item, k)) || this.rowGroupMatch(item);
@@ -155,7 +195,7 @@ export class JsonTableComponent implements OnInit {
     return this.arr
       .map((_, i) => i)
       .filter(i => {
-        if (this.forceVisible) return true;
+        if (this.effectiveForce) return true;
         const item = this.arr[i];
         if (!this.isObjectItem(item)) return this.filter.treeMatch(null, item);
         return keys.some(k => this.hasCell(item, k) && this.filter.treeMatch(k, this.cell(item, k)));
@@ -171,7 +211,7 @@ export class JsonTableComponent implements OnInit {
   // items) are exposed so edits/deletes can address the real position in
   // `arr`, independent of which items the filter currently hides.
   get filteredArrItemIndices(): number[] {
-    if (this.forceVisible) return this.arr.map((_, i) => i);
+    if (this.effectiveForce) return this.arr.map((_, i) => i);
     return this.arr.map((_, i) => i).filter(i => this.filter.treeMatch(null, this.arr[i]));
   }
 
@@ -220,24 +260,17 @@ export class JsonTableComponent implements OnInit {
   }
 
   itemForceVisible(item: unknown): boolean {
-    return this.forceVisible || this.filter.directMatch(null, item);
+    return this.effectiveForce || this.filter.forces(null, item);
   }
 
-  // Note: deliberately NOT widened by rowGroupMatch — widening only makes a
-  // sibling's key visible, it doesn't force its own subtree to expand. A
-  // sibling that itself has no match anywhere inside still recurses through
-  // the normal (unforced) filtering below, so it renders collapsed/empty
-  // rather than dumping unrelated content. Otherwise 'context' mode's
-  // widening would cascade forceVisible all the way to the leaves of every
-  // branch that shares an ancestor with a match — which, since every branch
-  // shares the root, would force-render the entire document on any match.
-  // Exception: in 'context' mode, a group with a direct match is the matching
-  // node itself, so its siblings' subtrees are forced visible (fullGroupMatch).
-  // That is bounded to the matching node's subtree, not the whole document.
+  // In 'context' mode a matching node shows its whole subtree, and so do the
+  // siblings of a matching node (groupMatch) — bounded to the matching
+  // group, so an ancestor that merely contains a match never forces the
+  // whole document.
   cellForceVisible(item: unknown, key: string): boolean {
-    return this.forceVisible
-      || this.filter.directMatch(key, this.cell(item, key))
-      || this.filter.fullGroupMatch(this.objEntriesOf(item));
+    return this.effectiveForce
+      || this.filter.forces(key, this.cell(item, key))
+      || this.filter.groupMatch(this.objEntriesOf(item));
   }
 
   // An object entry is shown if it isn't manually hidden via the column menu
@@ -246,15 +279,36 @@ export class JsonTableComponent implements OnInit {
   // mode has widened visibility to the whole group this entry belongs to.
   private entryVisible(key: string, value: unknown, widened: boolean): boolean {
     if (this.visibility.isHidden(this.colKey(key))) return false;
-    return this.forceVisible || widened || this.filter.treeMatch(key, value);
+    return this.effectiveForce || widened || this.filter.treeMatch(key, value);
   }
 
-  // See the note on cellForceVisible: widening from objGroupMatch is
-  // intentionally excluded here too.
   entryForceVisible(key: string, value: unknown): boolean {
-    return this.forceVisible
-      || this.filter.directMatch(key, value)
-      || this.filter.fullGroupMatch(this.objEntries);
+    return this.effectiveForce
+      || this.filter.forces(key, value)
+      || this.filter.groupMatch(this.objEntries);
+  }
+
+  entryCollapsed(key: string, value: unknown): boolean {
+    return !this.entryForceVisible(key, value) && this.filter.collapsedByFilter(key, value);
+  }
+
+  cellCollapsed(item: unknown, key: string): boolean {
+    const value = this.cell(item, key);
+    return !this.cellForceVisible(item, key) && this.filter.collapsedByFilter(key, value);
+  }
+
+  objDim(key: string): boolean {
+    return this.filter.keyDim(key, (this.value as Record<string, unknown>)[key]);
+  }
+
+  columnDim(key: string): boolean {
+    if (!this.filter.active) return false;
+    switch (this.filter.mode()) {
+      case 'matches': return !this.filter.keyMatch(key);
+      case 'context':
+        return !this.arr.some(item => this.hasCell(item, key) && this.filter.treeMatch(key, this.cell(item, key)));
+      default: return false;
+    }
   }
 
   cell(item: unknown, key: string): unknown {
@@ -273,6 +327,10 @@ export class JsonTableComponent implements OnInit {
   arrCellPath(key: string): string {
     return this.path ? `${this.path}.*.${key}` : `*.${key}`;
   }
+
+  objChildUid(key: string): string { return `${this.uid}.${key}`; }
+  cellUid(index: number, key: string): string { return `${this.uid}[${index}].${key}`; }
+  itemUid(index: number): string { return `${this.uid}[${index}]`; }
 
   arrItemPath(): string {
     return this.path ? `${this.path}.*` : '*';
