@@ -6,7 +6,7 @@ plugins {
 }
 
 group = "ch.sonensei.canopy"
-version = "0.2.1"
+version = "0.2.2"
 
 repositories {
     mavenCentral()
@@ -41,6 +41,10 @@ intellijPlatform {
         version.set(project.version.toString())
         changeNotes.set(
             """
+            <h4>0.2.2</h4>
+            <ul>
+                <li>New plugin icon, matching the JSON Canopy web app.</li>
+            </ul>
             <h4>0.2.1</h4>
             <ul>
                 <li>Fix: the JSON Canopy tab showed "Your file couldn't be accessed" on some IDEs
