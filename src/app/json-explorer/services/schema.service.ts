@@ -1,5 +1,7 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { ProblemIndex, SchemaModel, loadSchema } from '../../schema';
+import { ProblemIndex, SchemaModel, loadSchema, parsePathKey, type GhostKey, type JsonSchema, type JsonType, type NodeMeta, type Primitive } from '../../schema';
+
+const NONE: readonly never[] = [];
 
 // The schema the current document is checked against, and the problems that
 // result. Purely advisory: nothing here blocks or rewrites an edit — the
@@ -26,6 +28,103 @@ export class SchemaService {
   });
 
   readonly index = computed(() => new ProblemIndex(this.problems(), this.data()));
+
+  // What the schema says about a node, looked up by its instance key (`uid`).
+  // The table asks on every change-detection pass, so answers are memoised:
+  // choices depend on the data (which variant applies), types only on the schema.
+  private readonly choiceCache = computed(() => ({
+    model: this._model(),
+    data: this.data(),
+    byKey: new Map<string, readonly Primitive[] | undefined>(),
+    ghosts: new Map<string, readonly GhostKey[]>(),
+    permits: new Map<string, boolean>(),
+    meta: new Map<string, NodeMeta | undefined>(),
+    readOnly: new Map<string, boolean>(),
+  }));
+  private readonly typeCache = computed(() => ({
+    model: this._model(),
+    byKey: new Map<string, readonly JsonType[] | undefined>(),
+    declared: new Map<string, readonly string[]>(),
+  }));
+
+  /** The values the schema allows at this node, if it lists them all — what a dropdown offers. */
+  choicesFor(key: string): readonly Primitive[] | undefined {
+    const { model, data, byKey } = this.choiceCache();
+    if (!model || data === undefined) return undefined;
+    if (!byKey.has(key)) byKey.set(key, model.choicesAt(parsePathKey(key), data));
+    return byKey.get(key);
+  }
+
+  /**
+   * What the schema says about a node. With `narrow` (the default) the
+   * current data picks the variant; without it every variant counts, which
+   * is what a column shared by many rows needs.
+   */
+  metaFor(key: string, narrow = true): NodeMeta | undefined {
+    const { model, data, meta } = this.choiceCache();
+    if (!model || data === undefined) return undefined;
+    const id = `${narrow ? 'n' : 'w'}:${key}`;
+    if (!meta.has(id)) meta.set(id, model.metaAt(parsePathKey(key), narrow ? data : undefined));
+    return meta.get(id);
+  }
+
+  /** Whether the schema makes this node, or one above it, read-only. */
+  readOnlyFor(key: string): boolean {
+    const { model, data, readOnly } = this.choiceCache();
+    if (!model || data === undefined) return false;
+    if (!readOnly.has(key)) readOnly.set(key, model.readOnlyAt(parsePathKey(key), data));
+    return readOnly.get(key)!;
+  }
+
+  /** Declared keys the object at this node does not have yet. */
+  ghostsFor(key: string): readonly GhostKey[] {
+    const { model, data, ghosts } = this.choiceCache();
+    if (!model || data === undefined) return NONE;
+    if (!ghosts.has(key)) ghosts.set(key, model.ghostKeysAt(parsePathKey(key), data));
+    return ghosts.get(key)!;
+  }
+
+  /** Whether `key` may be added to the object at `parentKey`; true when there is no schema to object. */
+  permitsKey(parentKey: string, key: string): boolean {
+    const { model, data, permits } = this.choiceCache();
+    if (!model || data === undefined) return true;
+    const id = `${parentKey}\u0000${key}`;
+    if (!permits.has(id)) permits.set(id, model.permitsKey(parsePathKey(parentKey), data, key));
+    return permits.get(id)!;
+  }
+
+  /** Every key the item schema of the array at `arrayKey` declares. Empty when the schema says nothing. */
+  declaredItemKeys(arrayKey: string): readonly string[] {
+    const { model, declared } = this.typeCache();
+    if (!model) return NONE;
+    if (!declared.has(arrayKey)) declared.set(arrayKey, model.declaredKeysAt([...parsePathKey(arrayKey), 0]));
+    return declared.get(arrayKey)!;
+  }
+
+  /** A schema-shaped starting value for `schema`. */
+  seed(schema: JsonSchema): unknown {
+    return this._model()?.seed(schema);
+  }
+
+  /**
+   * A schema-shaped starting value for a new `key` in the object at
+   * `parentKey`, or undefined when the schema has nothing to say about it.
+   */
+  seedFor(parentKey: string, key: string): unknown {
+    const model = this._model();
+    const data = this.data();
+    if (!model || data === undefined) return undefined;
+    const node = model.nodesAt([...parsePathKey(parentKey), key], data)[0];
+    return node ? model.seed(node) : undefined;
+  }
+
+  /** The JSON types the schema allows at this node, or undefined when it says nothing. */
+  typesFor(key: string): readonly JsonType[] | undefined {
+    const { model, byKey } = this.typeCache();
+    if (!model) return undefined;
+    if (!byKey.has(key)) byKey.set(key, model.typesAt(parsePathKey(key)));
+    return byKey.get(key);
+  }
 
   // Called by `App` whenever the document changes.
   setData(data: unknown): void {

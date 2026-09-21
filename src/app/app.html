@@ -18,6 +18,55 @@
     }
   </header>
 
+  @if (hasData()) {
+    <div class="schema-bar">
+      <span class="schema-label">Schema</span>
+      @if (schema.model()) {
+        <span class="schema-name" [title]="schema.name()">{{ schema.name() }}</span>
+        @if (schema.problems().length) {
+          <button type="button" class="schema-status bad" [attr.aria-expanded]="problemsOpen()" (click)="problemsOpen.set(!problemsOpen())" title="Show or hide the list">
+            ⚠ {{ schema.problems().length }} {{ schema.problems().length === 1 ? 'problem' : 'problems' }} {{ problemsOpen() ? '▴' : '▾' }}
+          </button>
+        } @else {
+          <span class="schema-status ok">✔ valid</span>
+        }
+        <span class="schema-spacer"></span>
+        <label class="btn file-btn">
+          Change…
+          <input type="file" accept=".json,application/json,application/schema+json" (change)="onSchemaSelected($event)" hidden />
+        </label>
+        <button type="button" class="btn" (click)="schema.clear()">Remove</button>
+      } @else {
+        <span class="schema-name none">none</span>
+        @if (schemaRef(); as ref) {
+          <span class="schema-hint" [title]="ref">This file points to “{{ ref }}” — choose that file to use it.</span>
+        }
+        <span class="schema-spacer"></span>
+        <label class="btn file-btn">
+          Choose schema…
+          <input type="file" accept=".json,application/json,application/schema+json" (change)="onSchemaSelected($event)" hidden />
+        </label>
+      }
+    </div>
+    @if (problemsOpen() && schema.problems().length) {
+      <ul class="problem-list">
+        @for (p of schema.problems().slice(0, problemListLimit); track $index) {
+          <li>
+            <button type="button" class="problem-jump" [disabled]="rawMode()" [title]="rawMode() ? 'Switch to table view to jump' : 'Show in the table'" (click)="jumpTo(p)">
+              <span class="problem-path">{{ formatPath(p.path) }}</span> {{ p.message }}
+            </button>
+          </li>
+        }
+        @if (schema.problems().length > problemListLimit) {
+          <li class="more">… and {{ schema.problems().length - problemListLimit }} more</li>
+        }
+      </ul>
+    }
+    @if (schema.error()) {
+      <p class="error">{{ schema.error() }}</p>
+    }
+  }
+
   <main class="content">
     @if (hasData()) {
       @if (rawMode()) {

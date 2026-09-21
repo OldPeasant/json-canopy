@@ -40,6 +40,15 @@ export class RevealService {
     this.getOrCreate(path, 0).update(n => Math.min(filteredLength, n + by));
   }
 
+  // Makes sure the child at `position` is among the revealed ones, growing
+  // the count only as far as that. `initial` is what the count would start at
+  // if nobody had touched it, so a jump to an early item leaves the usual
+  // first page as it was.
+  ensure(path: string, position: number, filteredLength: number, initial: number): void {
+    const sig = this.getOrCreate(path, initial);
+    if (position >= Math.min(sig(), filteredLength)) sig.set(Math.min(filteredLength, position + 1));
+  }
+
   revealAll(path: string, filteredLength: number): void {
     this.getOrCreate(path, 0).set(filteredLength);
   }

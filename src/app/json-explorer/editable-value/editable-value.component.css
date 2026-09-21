@@ -25,6 +25,16 @@
   color: var(--accent);
 }
 
+.choice-select {
+  font-size: 0.8125rem;
+  color: var(--val-str);
+}
+
+.choice-select.not-allowed {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 .val-input {
   font-family: var(--font-mono);
   font-size: 0.8125rem;
@@ -82,4 +92,11 @@
   white-space: pre-wrap;
   overflow-wrap: break-word;
   vertical-align: top;
+}
+
+.lock {
+  margin-left: 4px;
+  font-size: 0.6875rem;
+  opacity: 0.6;
+  cursor: help;
 }

@@ -1,4 +1,5 @@
-import type { Discriminator, GhostKey, JsonSchema, JsonType, Path, Problem } from './schema.types';
+import type { Discriminator, GhostKey, JsonSchema, JsonType, NodeMeta, Path, Primitive, Problem } from './schema.types';
+import { describeConstraints, typeLabel } from './schema-describe';
 import { createValidator } from './schema-validator';
 
 const ALL_TYPES: JsonType[] = ['string', 'number', 'boolean', 'null', 'object', 'array'];
@@ -100,6 +101,122 @@ export class SchemaModel {
       });
   }
 
+  /**
+   * What the schema says about the node at `path`, for tooltips and styling,
+   * or undefined if it says nothing about that path. `readOnly` is inherited
+   * from ancestors; everything else comes from the node itself.
+   */
+  metaAt(path: Path, data?: unknown): NodeMeta | undefined {
+    const nodes = this.nodesAt(path, data);
+    if (!nodes.length) return undefined;
+    const first = <T>(pick: (n: JsonSchema) => T | undefined): T | undefined => nodes.map(pick).find((v) => v !== undefined);
+    const hasDefault = nodes.some((n) => 'default' in n);
+    return {
+      type: first((n) => typeLabel(n, (x) => this.resolve(x)) || undefined) ?? '',
+      title: first((n) => n.title),
+      description: first((n) => n.description),
+      examples: first((n) => n.examples),
+      hasDefault,
+      default: first((n) => n.default),
+      deprecated: nodes.some((n) => n.deprecated === true),
+      readOnly: this.readOnlyAt(path, data),
+      writeOnly: nodes.some((n) => n.writeOnly === true),
+      constraints: nodes.length === 1 ? describeConstraints(nodes[0]) : [],
+    };
+  }
+
+  /** Whether the node at `path`, or any node above it, is `readOnly`. */
+  readOnlyAt(path: Path, data?: unknown): boolean {
+    for (let depth = 0; depth <= path.length; depth++) {
+      if (this.nodesAt(path.slice(0, depth), data).some((n) => n.readOnly === true)) return true;
+    }
+    return false;
+  }
+
+  /** Like `ghostKeys`, for the object at `path` in `data`; leaves out deprecated keys, which are not worth offering. */
+  ghostKeysAt(path: Path, data: unknown): GhostKey[] {
+    const value = valueAt(data, path);
+    if (!isObject(value)) return [];
+    const seen = new Set<string>();
+    return this.nodesAt(path, data)
+      .flatMap((node) => this.ghostKeys(node, value))
+      .filter((g) => !g.schema.deprecated && !seen.has(g.key) && seen.add(g.key));
+  }
+
+  /**
+   * Every non-deprecated property name declared for the objects allowed at
+   * `path`, in schema order, across all variants. What a table of records
+   * can offer as a column even when no row has a value there yet.
+   */
+  declaredKeysAt(path: Path): string[] {
+    const keys = new Set<string>();
+    const collect = (node: JsonSchema, depth: number): void => {
+      const s = this.resolve(node);
+      for (const [key, prop] of Object.entries(s.properties ?? {})) {
+        if (!this.resolve(prop).deprecated) keys.add(key);
+      }
+      if (depth < 8) for (const alt of s.oneOf ?? s.anyOf ?? []) collect(alt, depth + 1);
+    };
+    this.nodesAt(path).forEach((n) => collect(n, 0));
+    return [...keys];
+  }
+
+  /**
+   * Whether `key` may be added to the object at `path`: it is declared or
+   * matches a pattern, or the object is open. False only where the schema
+   * closes the object (`additionalProperties`/`unevaluatedProperties: false`)
+   * and the key is not one it declares. Where the schema says nothing, true.
+   */
+  permitsKey(path: Path, data: unknown, key: string): boolean {
+    const nodes = this.nodesAt(path, data);
+    return !nodes.length || nodes.some((n) => this.permits(n, key));
+  }
+
+  /**
+   * A starting value for a new key or item shaped by `node`: its default,
+   * else its const or first enumerated value, else the empty value of its
+   * type. Objects get their required keys, seeded the same way, so the
+   * result is as close to valid as the schema allows without asking the user.
+   */
+  seed(node: JsonSchema, depth = 0): unknown {
+    const s = this.resolve(node);
+    if (s.default !== undefined) return structuredClone(s.default);
+    if (s.const !== undefined) return structuredClone(s.const);
+    const listed = this.enumerated(s);
+    if (listed?.length) return structuredClone(listed[0]);
+    const alternatives = (s.oneOf ?? s.anyOf)?.map((a) => this.resolve(a));
+    if (alternatives?.length) {
+      const { oneOf, anyOf, ...base } = s;
+      // Prefer a real value over null when the schema allows either.
+      const pick = alternatives.find((a) => a.type !== 'null' && a.const !== null) ?? alternatives[0];
+      return this.seed(merge(base, pick), depth);
+    }
+    const types = [s.type].flat().filter((t): t is string => typeof t === 'string');
+    const type = types.find((t) => t !== 'null') ?? types[0] ?? (s.properties ? 'object' : s.items ? 'array' : undefined);
+    switch (type) {
+      case 'number':
+      case 'integer':
+        return typeof s.minimum === 'number' ? s.minimum : 0;
+      case 'boolean':
+        return false;
+      case 'null':
+        return null;
+      case 'array':
+        return [];
+      case 'object': {
+        const out: Record<string, unknown> = {};
+        if (depth < 4) {
+          for (const key of s.required ?? []) {
+            if (s.properties?.[key]) out[key] = this.seed(s.properties[key], depth + 1);
+          }
+        }
+        return out;
+      }
+      default:
+        return '';
+    }
+  }
+
   /** The JSON types the value at `node` may have, for restricting the type dropdown. */
   allowedTypes(node: JsonSchema): JsonType[] {
     const s = this.resolve(node);
@@ -109,6 +226,38 @@ export class SchemaModel {
     for (const t of [s.type].flat()) if (t) found.add(t === 'integer' ? 'number' : (t as JsonType));
     for (const v of s.const !== undefined ? [s.const] : (s.enum ?? [])) found.add(jsonTypeOf(v));
     return found.size ? ALL_TYPES.filter((t) => found.has(t)) : [...ALL_TYPES];
+  }
+
+  /**
+   * The values a scalar at `path` may take, when the schema lists them all
+   * (enum, const, or alternatives of those) — what a dropdown offers. The
+   * property that selects a variant is the exception: it offers the values
+   * of every variant, since choosing one is how you switch variants.
+   */
+  choicesAt(path: Path, data?: unknown): Primitive[] | undefined {
+    let nodes = this.nodesAt(path, data);
+    const key = path[path.length - 1];
+    if (typeof key === 'string' && this.nodesAt(path.slice(0, -1)).some((p) => this.discriminatorOf(p)?.property === key)) {
+      nodes = this.nodesAt(path);
+    }
+    if (!nodes.length) return undefined;
+    const lists = nodes.map((n) => this.enumerated(n));
+    if (lists.some((l) => !l)) return undefined;
+    const seen = new Set<string>();
+    const values = (lists as unknown[][]).flat().filter((v) => !seen.has(JSON.stringify(v)) && seen.add(JSON.stringify(v)));
+    return values.every(isPrimitive) ? values : undefined;
+  }
+
+  /**
+   * The JSON types the value at `path` may have, or undefined when the
+   * schema says nothing about the path. Deliberately ignores the current
+   * value: a `null | object` field holding null must still offer object.
+   */
+  typesAt(path: Path): JsonType[] | undefined {
+    const nodes = this.nodesAt(path);
+    if (!nodes.length) return undefined;
+    const types = new Set(nodes.flatMap((n) => this.allowedTypes(n)));
+    return ALL_TYPES.filter((t) => types.has(t));
   }
 
   /** Validates `data` against the schema. Never throws for bad data. */
@@ -158,6 +307,14 @@ export class SchemaModel {
     return node as JsonSchema;
   }
 
+  private permits(node: JsonSchema, key: string): boolean {
+    const s = this.resolve(node);
+    if (this.ownChild(s, key)) return true;
+    const alternatives = s.oneOf ?? s.anyOf;
+    if (alternatives?.some((a) => this.permits(a, key))) return true;
+    return s.additionalProperties !== false && s['unevaluatedProperties'] !== false;
+  }
+
   /** Schemas for `key` (a property name or array index) inside the object/array schema `s`. */
   private childrenOf(s: JsonSchema, key: string | number): JsonSchema[] {
     const out: JsonSchema[] = [];
@@ -179,6 +336,17 @@ export class SchemaModel {
     if (patterns.length) return merge({}, ...patterns.map(([, v]) => v));
     if (typeof s.additionalProperties === 'object') return s.additionalProperties;
     return undefined;
+  }
+
+  /** The complete list of values a node allows, if it gives one. */
+  private enumerated(node: JsonSchema): unknown[] | undefined {
+    const s = this.resolve(node);
+    if (s.const !== undefined) return [s.const];
+    if (s.enum) return s.enum;
+    const alternatives = s.oneOf ?? s.anyOf;
+    if (!alternatives) return undefined;
+    const lists = alternatives.map((a) => this.enumerated(a));
+    return lists.every((l) => l) ? (lists as unknown[][]).flat() : undefined;
   }
 
   private selectorValues(variant: JsonSchema, property: string, constOnly: boolean): unknown[] | undefined {
@@ -242,12 +410,20 @@ export function jsonTypeOf(v: unknown): JsonType {
   return typeof v === 'object' ? 'object' : (typeof v as JsonType);
 }
 
+function isPrimitive(v: unknown): v is Primitive {
+  return v === null || ['string', 'number', 'boolean'].includes(typeof v);
+}
+
 function isObject(v: unknown): v is Record<string, unknown> {
   return jsonTypeOf(v) === 'object';
 }
 
 function deepEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function valueAt(data: unknown, path: Path): unknown {
+  return path.reduce<unknown>((value, key) => childValue(value, key), data);
 }
 
 function childValue(value: unknown, key: string | number): unknown {

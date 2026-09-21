@@ -182,6 +182,15 @@ td:hover > .add-cell-btn {
   opacity: 1;
 }
 
+/* In a ghost column every cell is empty, so the + is always faintly visible. */
+.add-cell-btn.in-ghost {
+  opacity: 0.45;
+}
+
+td:hover > .add-cell-btn.in-ghost {
+  opacity: 1;
+}
+
 .add-cell-btn:hover {
   color: var(--accent);
   border-color: var(--accent);
@@ -336,9 +345,80 @@ th.idx .del-btn {
   border-color: var(--accent);
 }
 
+/* Declared keys the object lacks: offered, not present. */
+.ghost-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.ghost-chip {
+  padding: 1px 8px;
+  background: none;
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.ghost-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.ghost-chip.required {
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+}
+
+.collapsed-chip.has-problems {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* A schema problem on this node; the messages are its tooltip. */
+.problem-badge {
+  margin-right: 0.35rem;
+  color: var(--danger);
+  font-size: 0.8125rem;
+  cursor: help;
+}
+
+/* A key the schema marks deprecated. */
+table th.deprecated {
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+  color: var(--text-faint);
+}
+
+/* A column the schema declares but no row has yet. */
+table th.ghost {
+  opacity: 0.55;
+  font-style: italic;
+  border-style: dashed;
+}
+
 /* Keys shown for structure or context rather than because they matched. */
 table th.dim {
   opacity: 0.4;
   font-weight: 400;
   font-style: italic;
+}
+
+/* Where a jump from the problem list landed. */
+.jump-flash {
+  animation: jump-flash 1.6s ease-out;
+}
+
+@keyframes jump-flash {
+  0% {
+    box-shadow: 0 0 0 2px var(--danger), 0 0 14px var(--danger);
+    background: var(--danger-bg);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
 }

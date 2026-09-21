@@ -1,0 +1,58 @@
+@if (meta; as m) {
+  <span
+    class="info"
+    tabindex="0"
+    role="note"
+    aria-label="Schema information"
+    (mouseenter)="show($event)"
+    (mouseleave)="hide()"
+    (focus)="show($event)"
+    (blur)="hide()"
+    (click)="$event.stopPropagation()"
+    >ⓘ
+    @if (open) {
+      <span class="pop" [style.left.px]="x" [style.top.px]="y">
+        @if (m.title) {
+          <span class="title">{{ m.title }}</span>
+        }
+        @if (m.type || m.deprecated || m.readOnly || m.writeOnly) {
+          <span class="line">
+            @if (m.type) {
+              <code class="type">{{ m.type }}</code>
+            }
+            @if (m.deprecated) {
+              <span class="badge warn">deprecated</span>
+            }
+            @if (m.readOnly) {
+              <span class="badge">read-only</span>
+            }
+            @if (m.writeOnly) {
+              <span class="badge">write-only</span>
+            }
+          </span>
+        }
+        @if (m.description) {
+          <span class="desc">{{ m.description }}</span>
+        }
+        @if (m.constraints.length) {
+          <span class="line">
+            @for (c of m.constraints; track $index) {
+              <span class="badge">{{ c }}</span>
+            }
+          </span>
+        }
+        @if (m.hasDefault) {
+          <span class="line">default <code>{{ json(m.default) }}</code></span>
+        }
+        @if (m.examples?.length) {
+          <span class="line">
+            e.g.
+            @for (e of m.examples!.slice(0, 3); track $index) {
+              <code>{{ json(e) }}</code>
+            }
+          </span>
+        }
+      </span>
+    }
+  </span>
+}

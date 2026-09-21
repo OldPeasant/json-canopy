@@ -141,7 +141,15 @@ schema mapping and validation must stay fast on it.
 - [x] Direction and decisions agreed
 - [x] Test-bed schemas and samples drafted and verified
 - [x] Phase 0: schema core (`src/app/schema/`, `npm test`; 8,000 rows validate in ~9 ms)
-- [ ] Phase 1: tables with schema
+- [x] Phase 1: tables with schema
+  - [x] Schema bar: choose/remove a schema, problem count and list
+  - [x] Error markers on nodes, chips and rows
+  - [x] Jump from a problem in the list to its node (clears search, expands, unhides, reveals, scrolls)
+  - [x] Deprecated (struck through) and readOnly (locked, inherited) styling
+  - [x] Enum dropdowns and restricted type dropdown
+  - [x] Ghost keys: chips under objects, dim columns in tables of records, schema-seeded values
+  - [ ] Optional-columns chips (collapse sparse columns) — deferred; ghost columns cover "what can I add"
+  - [x] `ⓘ` popover with descriptions, constraints, default and examples
 - [ ] Phase 2: form layout
 - [ ] Phase 3: variants and alternatives
 - [ ] Phase 4: plugin integration

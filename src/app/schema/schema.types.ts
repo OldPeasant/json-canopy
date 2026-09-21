@@ -1,6 +1,9 @@
 /** A path into a JSON document: object keys and array indices. */
 export type Path = ReadonlyArray<string | number>;
 
+/** A JSON value that is not an object or array. */
+export type Primitive = string | number | boolean | null;
+
 /** The six JSON value types as the editor's type dropdown knows them. */
 export type JsonType = 'string' | 'number' | 'boolean' | 'null' | 'object' | 'array';
 
@@ -16,6 +19,20 @@ export interface JsonSchema {
   additionalProperties?: boolean | JsonSchema;
   propertyNames?: JsonSchema;
   required?: string[];
+  minimum?: number;
+  maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
+  multipleOf?: number;
+  minLength?: number;
+  maxLength?: number;
+  pattern?: string;
+  format?: string;
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  minProperties?: number;
+  maxProperties?: number;
   items?: boolean | JsonSchema;
   prefixItems?: JsonSchema[];
   enum?: unknown[];
@@ -58,4 +75,21 @@ export interface Discriminator {
   property: string;
   /** Per variant (same order as the alternatives), the values that select it. */
   values: unknown[][];
+}
+
+/** What the schema says about one node, in a form the UI can show. */
+export interface NodeMeta {
+  /** The types the node may have, as one line: `integer`, `null | object`. Empty when unconstrained. */
+  type: string;
+  title?: string;
+  description?: string;
+  examples?: unknown[];
+  hasDefault: boolean;
+  default?: unknown;
+  deprecated: boolean;
+  /** Inherited: true when the node or any ancestor is read-only. */
+  readOnly: boolean;
+  writeOnly: boolean;
+  /** Plain-words constraints: `≥ 1`, `one of: a, b`, `required: id, name`. */
+  constraints: string[];
 }

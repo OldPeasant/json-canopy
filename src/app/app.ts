@@ -1,10 +1,12 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { JsonExplorerComponent } from './json-explorer/json-explorer.component';
 import { EditModeService } from './json-explorer/services/edit-mode.service';
 import { HostBridgeService } from './json-explorer/services/host-bridge.service';
 import { CollapseService } from './json-explorer/services/collapse.service';
 import { RevealService } from './json-explorer/services/reveal.service';
 import { SchemaService } from './json-explorer/services/schema.service';
+import { JumpService } from './json-explorer/services/jump.service';
+import { formatPath, schemaRefOf, type Problem } from './schema';
 
 @Component({
   selector: 'app-root',
@@ -18,6 +20,7 @@ export class App {
   private collapse = inject(CollapseService);
   protected hostBridge = inject(HostBridgeService);
   protected schema = inject(SchemaService);
+  private jump = inject(JumpService);
 
   protected readonly data = signal<unknown>(undefined);
   protected readonly fileName = signal<string | null>(null);
@@ -30,6 +33,15 @@ export class App {
   protected readonly copied = signal(false);
 
   protected readonly hasData = () => this.data() !== undefined;
+
+  // What the document itself says its schema is, so the schema bar can
+  // point at the file to choose. Resolving it is left to the user for now.
+  protected readonly schemaRef = computed(() => schemaRefOf(this.data()));
+
+  protected readonly problemsOpen = signal(false);
+  // A huge document can fail thousands of times over; the list shows the first few.
+  protected readonly problemListLimit = 200;
+  protected readonly formatPath = formatPath;
 
   // Debounce timer for pushing user edits back to the host — coalesces
   // rapid-fire edits (e.g. dragging through several cell edits) into one
@@ -107,6 +119,21 @@ export class App {
     a.download = this.fileName() ?? 'data.json';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  jumpTo(problem: Problem): void {
+    this.jump.to(problem, this.data());
+  }
+
+  onSchemaSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => this.schema.load(reader.result as string, file.name);
+      reader.readAsText(file);
+    }
+    input.value = '';
   }
 
   onDraftInput(event: Event): void {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ProblemIndex, pathKey } from './problem-index';
+import { ProblemIndex, appendKey, formatPath, parsePathKey, pathKey } from './problem-index';
 import type { Path, Problem } from './schema.types';
 
 const problem = (path: Path, message = 'bad'): Problem => ({ path, keyword: 'x', message, schemaPath: '#' });
@@ -9,6 +9,46 @@ describe('pathKey', () => {
     expect(pathKey([])).toBe('');
     expect(pathKey(['members', 1, 'contact'])).toBe('.members[1].contact');
     expect(pathKey([0])).toBe('[0]');
+  });
+});
+
+describe('parsePathKey', () => {
+  const paths: Path[] = [
+    [],
+    ['members', 1, 'contact'],
+    [0],
+    ['logging', 'loggers', 'http.client'],
+    ['a[0]', 'b]', '[', ']', '.'],
+    ['back\\slash', 'trailing\\'],
+    ['', '0', ''],
+    [1, 2, 'x'],
+  ];
+  it.each(paths)('round-trips %j', (...path) => {
+    expect(parsePathKey(pathKey(path))).toEqual(path);
+  });
+
+  it('keeps keys that look alike apart', () => {
+    expect(pathKey(['a', 'b'])).not.toBe(pathKey(['a.b']));
+    expect(pathKey(['a', 0])).not.toBe(pathKey(['a[0]']));
+    expect(pathKey(['0'])).not.toBe(pathKey([0]));
+  });
+
+  it('builds keys step by step', () => {
+    expect(appendKey(appendKey('', 'members'), 3)).toBe('.members[3]');
+  });
+
+  it('survives malformed input', () => {
+    expect(() => parsePathKey('.a[')).not.toThrow();
+    expect(parsePathKey('garbage')).toEqual([]);
+  });
+});
+
+describe('formatPath', () => {
+  it('writes paths the way people do', () => {
+    expect(formatPath([])).toBe('(document)');
+    expect(formatPath(['members', 0, 'contact', 'email'])).toBe('members[0].contact.email');
+    expect(formatPath([2, 'x'])).toBe('[2].x');
+    expect(formatPath(['loggers', 'http.client'])).toBe('loggers.http.client');
   });
 });
 
@@ -25,6 +65,14 @@ describe('ProblemIndex', () => {
     const idx = new ProblemIndex([problem(['members', 1, 'name'])], data);
     expect(idx.at('.members[1]')).toHaveLength(1);
     expect(idx.at('.members[1].name')).toEqual([]);
+  });
+
+  it('tells which node a problem is shown on', () => {
+    const missing = problem(['members', 1, 'name']);
+    const present = problem(['members', 1, 'id']);
+    const idx = new ProblemIndex([missing, present], data);
+    expect(idx.anchorOf(missing)).toEqual(['members', 1]);
+    expect(idx.anchorOf(present)).toEqual(['members', 1, 'id']);
   });
 
   it('anchors a missing array item on the array', () => {

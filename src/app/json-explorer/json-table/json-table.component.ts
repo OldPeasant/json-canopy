@@ -8,7 +8,10 @@ import { RevealService } from '../services/reveal.service';
 import { ColumnMenuComponent } from '../column-menu/column-menu.component';
 import { EditableValueComponent } from '../editable-value/editable-value.component';
 import { HighlightComponent } from '../highlight/highlight.component';
+import { SchemaInfoComponent } from '../schema-info/schema-info.component';
 import { EditModeService } from '../services/edit-mode.service';
+import { SchemaService } from '../services/schema.service';
+import { appendKey, type GhostKey, type Problem } from '../../schema';
 import { estimateAvgItemBytes, initialRevealCount } from '../reveal.util';
 import {
   JsonType,
@@ -21,10 +24,12 @@ import {
   withoutItemAt,
 } from '../json-edit.util';
 
+const NO_KEYS: readonly string[] = [];
+
 @Component({
   selector: 'app-json-table',
   standalone: true,
-  imports: [JsonTableComponent, ColumnMenuComponent, EditableValueComponent, HighlightComponent],
+  imports: [JsonTableComponent, ColumnMenuComponent, EditableValueComponent, HighlightComponent, SchemaInfoComponent],
   templateUrl: './json-table.component.html',
   styleUrl: './json-table.component.css',
 })
@@ -55,6 +60,7 @@ export class JsonTableComponent implements OnInit {
   protected editMode = inject(EditModeService);
   protected reveal = inject(RevealService);
   private collapse = inject(CollapseService);
+  private schema = inject(SchemaService);
 
   // Expanding a node by hand shows everything below it, whatever the filter
   // would otherwise hide there.
@@ -64,6 +70,58 @@ export class JsonTableComponent implements OnInit {
 
   get collapsed(): boolean {
     return this.collapse.get(this.uid, this.path) ?? this.filterCollapsed;
+  }
+
+  protected readonly GHOST_COLUMN_TITLE = 'Declared by the schema; no row has it yet';
+
+  // A key the schema marks deprecated is struck through in its header. A
+  // column shared by many rows asks across all variants (narrow = false).
+  isDeprecated(childKey: string, narrow = true): boolean {
+    return this.schema.metaFor(childKey, narrow)?.deprecated === true;
+  }
+
+  columnUid(key: string): string { return appendKey(this.itemUid(0), key); }
+
+  // Edit controls at this node: on in edit mode, unless the schema makes the
+  // node (or something above it) read-only.
+  get canEdit(): boolean {
+    return this.editMode.enabled() && !this.schema.readOnlyFor(this.uid);
+  }
+
+  // Schema problems about this very node — or, for something the data lacks
+  // (a missing required key), about the nearest node that exists.
+  get problems(): readonly Problem[] { return this.schema.index().at(this.uid); }
+
+  get problemTitle(): string { return this.problems.map(p => p.message).join('\n'); }
+
+  // In a table of records a row is not a node of its own — only its cells
+  // are — so problems about the row itself (a missing required key) are
+  // shown in the row's first cell (horizontal) or its #n header (vertical).
+  rowProblemTitle(index: number): string {
+    return this.schema.index().at(this.itemUid(index)).map(p => p.message).join('\n');
+  }
+
+  // Everything wrong at or below this node — what a collapsed chip is hiding.
+  get chipProblemCount(): number {
+    const index = this.schema.index();
+    return index.at(this.uid).length + index.countBelow(this.uid);
+  }
+
+  // Declared keys this object does not have yet, offered in edit mode as
+  // chips that add the key with a schema-shaped starting value.
+  get ghosts(): readonly GhostKey[] {
+    return this.type === 'object' && this.canEdit ? this.schema.ghostsFor(this.uid) : [];
+  }
+
+  ghostTitle(g: GhostKey): string {
+    const parts = [g.schema.description ?? (g.required ? 'Required by the schema' : 'Optional key from the schema')];
+    if (g.hasDefault) parts.push(`Default: ${JSON.stringify(g.default)}`);
+    if (g.schema.readOnly) parts.push('Read-only');
+    return parts.join('\n');
+  }
+
+  addGhost(g: GhostKey): void {
+    this.valueChange.emit(withEntry(this.value as Record<string, unknown>, g.key, this.schema.seed(g.schema)));
   }
 
   get isContainer(): boolean { return this.type === 'object' || this.type === 'array'; }
@@ -143,16 +201,37 @@ export class JsonTableComponent implements OnInit {
     return a.length > 0 && a.some(item => this.isObjectItem(item));
   }
 
-  get arrayKeys(): string[] {
+  // Shared column set: every key any row has, then — in edit mode, with a
+  // schema — the keys the schema declares that no row has yet ("ghost"
+  // columns, whose empty cells offer a + to add the key to that row).
+  // Memoised on the array itself, which edits replace rather than mutate.
+  private get keyInfo(): { arr: unknown[]; declared: readonly string[]; all: string[]; ghosts: Set<string> } {
+    const arr = this.arr;
+    const declared = this.canEdit ? this.schema.declaredItemKeys(this.uid) : NO_KEYS;
+    const memo = this.keyMemo;
+    if (memo && memo.arr === arr && memo.declared === declared) return memo;
     const seen = new Set<string>();
-    const keys: string[] = [];
-    for (const item of this.arr) {
+    const all: string[] = [];
+    for (const item of arr) {
       if (!this.isObjectItem(item)) continue;
       for (const k of Object.keys(item as Record<string, unknown>)) {
-        if (!seen.has(k)) { seen.add(k); keys.push(k); }
+        if (!seen.has(k)) { seen.add(k); all.push(k); }
       }
     }
-    return keys;
+    const ghosts = new Set(declared.filter(k => !seen.has(k)));
+    all.push(...ghosts);
+    return (this.keyMemo = { arr, declared, all, ghosts });
+  }
+  private keyMemo?: { arr: unknown[]; declared: readonly string[]; all: string[]; ghosts: Set<string> };
+
+  get arrayKeys(): string[] { return this.keyInfo.all; }
+
+  isGhostColumn(key: string): boolean { return this.keyInfo.ghosts.has(key); }
+
+  // Whether a row may get this key at all: a closed object, or a variant that
+  // doesn't declare it, must not be offered a + for it.
+  canAddCell(index: number, key: string): boolean {
+    return this.schema.permitsKey(this.itemUid(index), key);
   }
 
   // Whether the synthetic "value" column/row is needed at all — only when
@@ -329,9 +408,9 @@ export class JsonTableComponent implements OnInit {
     return this.path ? `${this.path}.*.${key}` : `*.${key}`;
   }
 
-  objChildUid(key: string): string { return `${this.uid}.${key}`; }
-  cellUid(index: number, key: string): string { return `${this.uid}[${index}].${key}`; }
-  itemUid(index: number): string { return `${this.uid}[${index}]`; }
+  objChildUid(key: string): string { return appendKey(this.uid, key); }
+  cellUid(index: number, key: string): string { return appendKey(this.itemUid(index), key); }
+  itemUid(index: number): string { return appendKey(this.uid, index); }
 
   arrItemPath(): string {
     return this.path ? `${this.path}.*` : '*';
@@ -401,11 +480,15 @@ export class JsonTableComponent implements OnInit {
     this.onItemChange(index, withoutEntry(item, key));
   }
 
-  // Fills in a row's missing cell for a shared column, shaped like whatever
-  // another row already has there (same keys/array length, leaves blanked)
-  // rather than a bare empty string — so e.g. adding "contact" on a row that
-  // lacks it starts you with the same { email, phone } shape other rows use.
+  // Fills in a row's missing cell for a shared column. With a schema that
+  // knows the key, the starting value comes from it (default, required
+  // keys, ...); otherwise it is shaped like whatever another row already
+  // has there (same keys/array length, leaves blanked) rather than a bare
+  // empty string — so e.g. adding "contact" on a row that lacks it starts
+  // you with the same { email, phone } shape other rows use.
   addCellLike(index: number, key: string): void {
+    const seeded = this.schema.seedFor(this.itemUid(index), key);
+    if (seeded !== undefined) return this.onCellChange(index, key, seeded);
     const source = this.arr.find(item => this.hasCell(item, key));
     const template = source === undefined ? '' : blankLike(this.cell(source, key));
     this.onCellChange(index, key, template);

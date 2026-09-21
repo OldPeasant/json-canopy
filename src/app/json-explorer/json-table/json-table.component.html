@@ -1,9 +1,13 @@
+@if (problems.length) {
+  <span class="problem-badge" [attr.data-problem-key]="uid" [title]="problemTitle" (click)="$event.stopPropagation()">⚠</span>
+}
+
 @if (!(showChip && !isContainer)) {
-  <app-editable-value [value]="value" (valueChange)="onSelfChange($event)" />
+  <app-editable-value [value]="value" [uid]="uid" (valueChange)="onSelfChange($event)" />
 }
 
 @if (showChip) {
-  <button type="button" class="collapsed-chip" (click)="setCollapsed($event, false)" title="Click to expand. Shift+click: expand all related nodes too">▸ {{ chipLabel }}</button>
+  <button type="button" class="collapsed-chip" [class.has-problems]="chipProblemCount > 0" (click)="setCollapsed($event, false)" title="Click to expand. Shift+click: expand all related nodes too">▸ {{ chipLabel }}@if (chipProblemCount) { ⚠ {{ chipProblemCount }}}</button>
 }
 
 @if (type === 'object' && !showChip) {
@@ -19,9 +23,9 @@
           <thead>
             <tr>
               @for (k of visibleObjKeys; track k) {
-                <th [attr.data-col-key]="colKey(k)" [class.dim]="objDim(k)">
-                  <app-hl [text]="k" kind="key" />
-                  @if (editMode.enabled()) {
+                <th [attr.data-col-key]="colKey(k)" [class.dim]="objDim(k)" [class.deprecated]="isDeprecated(objChildUid(k))">
+                  <app-hl [text]="k" kind="key" /><app-schema-info [nodeKey]="objChildUid(k)" />
+                  @if (canEdit) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onEntryDelete(k)" title="Delete key">&times;</button>
                   }
                 </th>
@@ -39,9 +43,9 @@
           <tbody>
             @for (e of visibleObjEntries; track e[0]) {
               <tr>
-                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="objDim(e[0])">
-                  <app-hl [text]="e[0]" kind="key" />
-                  @if (editMode.enabled()) {
+                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="objDim(e[0])" [class.deprecated]="isDeprecated(objChildUid(e[0]))">
+                  <app-hl [text]="e[0]" kind="key" /><app-schema-info [nodeKey]="objChildUid(e[0])" />
+                  @if (canEdit) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onEntryDelete(e[0])" title="Delete key">&times;</button>
                   }
                 </th>
@@ -62,7 +66,14 @@
       }
     </div>
   }
-  @if (editMode.enabled()) {
+  @if (ghosts.length) {
+    <span class="ghost-row" (click)="$event.stopPropagation()">
+      @for (g of ghosts; track g.key) {
+        <button type="button" class="ghost-chip" [class.required]="g.required" [title]="ghostTitle(g)" (click)="addGhost(g)">⊕ {{ g.key }}@if (g.required) {<b>*</b>}</button>
+      }
+    </span>
+  }
+  @if (canEdit) {
     <span class="add-row" (click)="$event.stopPropagation()">
       <input #newKey class="add-input" placeholder="key…" (keydown.enter)="addEntry(newKey.value); newKey.value = ''" />
       <button type="button" class="add-btn" (click)="addEntry(newKey.value); newKey.value = ''" title="Add key">+</button>
@@ -83,12 +94,12 @@
           <thead>
             <tr>
               @for (k of visibleArrayKeys; track k) {
-                <th [attr.data-col-key]="colKey(k)" [class.dim]="columnDim(k)"><app-hl [text]="k" kind="key" /></th>
+                <th [attr.data-col-key]="colKey(k)" [class.dim]="columnDim(k)" [class.deprecated]="isDeprecated(columnUid(k), false)" [class.ghost]="isGhostColumn(k)" [attr.title]="isGhostColumn(k) ? GHOST_COLUMN_TITLE : null"><app-hl [text]="k" kind="key" /><app-schema-info [nodeKey]="columnUid(k)" [wide]="true" /></th>
               }
               @if (hasNonObjectItems) {
                 <th [attr.data-col-key]="colKey('__val__')">value</th>
               }
-              @if (editMode.enabled()) {
+              @if (canEdit) {
                 <th class="corner"></th>
               }
             </tr>
@@ -98,13 +109,16 @@
               <tr>
                 @for (k of visibleArrayKeys; track k) {
                   <td>
+                    @if ($first && rowProblemTitle(i); as title) {
+                      <span class="problem-badge" [attr.data-problem-key]="itemUid(i)" [title]="title" (click)="$event.stopPropagation()">⚠</span>
+                    }
                     @if (hasCell(arr[i], k)) {
                       <app-json-table [value]="cell(arr[i], k)" [path]="arrCellPath(k)" [forceVisible]="cellForceVisible(arr[i], k)" [filterCollapsed]="cellCollapsed(arr[i], k)" [uid]="cellUid(i, k)" (valueChange)="onCellChange(i, k, $event)" />
-                      @if (editMode.enabled()) {
+                      @if (canEdit) {
                         <button type="button" class="del-btn cell-del" (click)="$event.stopPropagation(); onCellDelete(i, k)" title="Delete key from this row">&times;</button>
                       }
-                    } @else if (editMode.enabled() && isObjectItem(arr[i])) {
-                      <button type="button" class="add-cell-btn" (click)="$event.stopPropagation(); addCellLike(i, k)" title="Add '{{ k }}', shaped like other rows">+</button>
+                    } @else if (canEdit && isObjectItem(arr[i]) && canAddCell(i, k)) {
+                      <button type="button" class="add-cell-btn" [class.in-ghost]="isGhostColumn(k)" (click)="$event.stopPropagation(); addCellLike(i, k)" title="Add '{{ k }}', shaped like other rows">+</button>
                     }
                   </td>
                 }
@@ -115,7 +129,7 @@
                     }
                   </td>
                 }
-                @if (editMode.enabled()) {
+                @if (canEdit) {
                   <td class="row-actions">
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onItemDelete(i)" title="Delete item">&times;</button>
                   </td>
@@ -129,8 +143,11 @@
               <th class="corner"></th>
               @for (i of visibleArrayIndices; track i) {
                 <th class="idx">
+                  @if (rowProblemTitle(i); as title) {
+                    <span class="problem-badge" [attr.data-problem-key]="itemUid(i)" [title]="title" (click)="$event.stopPropagation()">⚠</span>
+                  }
                   #{{ i }}
-                  @if (editMode.enabled()) {
+                  @if (canEdit) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onItemDelete(i)" title="Delete item">&times;</button>
                   }
                 </th>
@@ -140,16 +157,16 @@
           <tbody>
             @for (k of visibleArrayKeys; track k) {
               <tr>
-                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="columnDim(k)"><app-hl [text]="k" kind="key" /></th>
+                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="columnDim(k)" [class.deprecated]="isDeprecated(columnUid(k), false)" [class.ghost]="isGhostColumn(k)" [attr.title]="isGhostColumn(k) ? GHOST_COLUMN_TITLE : null"><app-hl [text]="k" kind="key" /><app-schema-info [nodeKey]="columnUid(k)" [wide]="true" /></th>
                 @for (i of visibleArrayIndices; track i) {
                   <td>
                     @if (hasCell(arr[i], k)) {
                       <app-json-table [value]="cell(arr[i], k)" [path]="arrCellPath(k)" [forceVisible]="cellForceVisible(arr[i], k)" [filterCollapsed]="cellCollapsed(arr[i], k)" [uid]="cellUid(i, k)" (valueChange)="onCellChange(i, k, $event)" />
-                      @if (editMode.enabled()) {
+                      @if (canEdit) {
                         <button type="button" class="del-btn cell-del" (click)="$event.stopPropagation(); onCellDelete(i, k)" title="Delete key from this row">&times;</button>
                       }
-                    } @else if (editMode.enabled() && isObjectItem(arr[i])) {
-                      <button type="button" class="add-cell-btn" (click)="$event.stopPropagation(); addCellLike(i, k)" title="Add '{{ k }}', shaped like other rows">+</button>
+                    } @else if (canEdit && isObjectItem(arr[i]) && canAddCell(i, k)) {
+                      <button type="button" class="add-cell-btn" [class.in-ghost]="isGhostColumn(k)" (click)="$event.stopPropagation(); addCellLike(i, k)" title="Add '{{ k }}', shaped like other rows">+</button>
                     }
                   </td>
                 }
@@ -192,7 +209,7 @@
               @for (i of visibleArrItemIndices; track i) {
                 <td>
                   <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" [uid]="itemUid(i)" (valueChange)="onItemChange(i, $event)" />
-                  @if (editMode.enabled()) {
+                  @if (canEdit) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onItemDelete(i)" title="Delete item">&times;</button>
                   }
                 </td>
@@ -205,7 +222,7 @@
               <tr>
                 <td>
                   <app-json-table [value]="arr[i]" [path]="arrItemPath()" [forceVisible]="itemForceVisible(arr[i])" [uid]="itemUid(i)" (valueChange)="onItemChange(i, $event)" />
-                  @if (editMode.enabled()) {
+                  @if (canEdit) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onItemDelete(i)" title="Delete item">&times;</button>
                   }
                 </td>
@@ -226,7 +243,7 @@
     </div>
 
   }
-  @if (editMode.enabled()) {
+  @if (canEdit) {
     <span class="add-row" (click)="$event.stopPropagation()">
       <button type="button" class="add-btn" (click)="addItem()" title="Add item">+</button>
     </span>

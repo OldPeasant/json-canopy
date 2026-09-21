@@ -148,6 +148,208 @@ describe('allowedTypes', () => {
   });
 });
 
+describe('choicesAt', () => {
+  it('lists an enum', () => {
+    const m = model('team');
+    expect(m.choicesAt(['members', 0, 'role'])).toEqual(['engineer', 'researcher', 'lead', 'founder']);
+    expect(model('app-config').choicesAt(['logging', 'level'])).toEqual(['trace', 'debug', 'info', 'warn', 'error']);
+  });
+
+  it('follows the variant the data selects', () => {
+    const m = model('filters-demo');
+    const board = load('plugin-demo/filters-demo.json');
+    expect(m.choicesAt(['items', 0, 'status'], board)).toEqual(['todo', 'in-progress', 'done']);
+    expect(m.choicesAt(['items', 1, 'status'], board)).toEqual(['open', 'fixed', 'wontfix']);
+    expect(m.choicesAt(['items', 3, 'status'], board)).toEqual(['n/a']);
+  });
+
+  it('offers every variant for the discriminator itself', () => {
+    const board = load('plugin-demo/filters-demo.json');
+    expect(model('filters-demo').choicesAt(['items', 1, 'type'], board)).toEqual(['todo', 'bug', 'note', 'event']);
+    const db = { database: { driver: 'postgres' } };
+    expect(model('app-config').choicesAt(['database', 'driver'], db)).toEqual(['sqlite', 'postgres']);
+  });
+
+  it('is undefined where the schema does not enumerate', () => {
+    const m = model('team');
+    expect(m.choicesAt(['members', 0, 'name'])).toBeUndefined();
+    expect(m.choicesAt(['members', 0, 'contact'])).toBeUndefined();
+    expect(m.choicesAt(['nope'])).toBeUndefined();
+  });
+
+  it('unions enumerated alternatives and refuses non-scalar values', () => {
+    const m = new SchemaModel({
+      properties: { a: { oneOf: [{ const: 'x' }, { enum: ['y', 3] }] }, b: { oneOf: [{ const: 'x' }, { type: 'string' }] }, c: { enum: [{ o: 1 }] } },
+    });
+    expect(m.choicesAt(['a'])).toEqual(['x', 'y', 3]);
+    expect(m.choicesAt(['b'])).toBeUndefined();
+    expect(m.choicesAt(['c'])).toBeUndefined();
+  });
+});
+
+describe('ghostKeysAt', () => {
+  it('lists absent declared keys of the object at a path', () => {
+    const team = model('team');
+    const data = load('team.json');
+    expect(team.ghostKeysAt(['members', 1], data).map((g) => g.key)).toEqual(['notes', 'reports', 'patents', 'awards']);
+    expect(team.ghostKeysAt(['members', 1, 'contact'], data).map((g) => g.key)).toEqual(['phone', 'website']);
+  });
+
+  it('leaves out deprecated keys', () => {
+    const cfg = model('app-config');
+    const keys = cfg.ghostKeysAt([], { server: { port: 1 }, database: { driver: 'sqlite', file: 'x' } }).map((g) => g.key);
+    expect(keys).toEqual(expect.arrayContaining(['name', 'environment', 'logging', 'features', 'cache']));
+    expect(keys).not.toContain('cacheTtl');
+  });
+
+  it('follows the variant and returns nothing for a non-object', () => {
+    const board = load('plugin-demo/filters-demo.json');
+    const items = model('filters-demo');
+    expect(items.ghostKeysAt(['items', 4], board).map((g) => g.key)).toEqual(['description']);
+    expect(items.ghostKeysAt(['items', 5], board)).toEqual([]);
+    expect(items.ghostKeysAt(['items', 5, 'title'], board)).toEqual([]);
+  });
+});
+
+describe('metaAt', () => {
+  it('summarises a node', () => {
+    const cfg = model('app-config');
+    expect(cfg.metaAt(['server', 'port'])).toMatchObject({
+      type: 'integer', hasDefault: true, default: 8080, deprecated: false, readOnly: false, constraints: ['≥ 1', '≤ 65535'],
+    });
+    expect(cfg.metaAt(['server', 'timeoutMs'])?.description).toBe('0 disables the timeout.');
+    expect(cfg.metaAt(['name'])?.examples).toEqual(['billing-api']);
+  });
+
+  it('reports the types of alternatives and required keys', () => {
+    const team = model('team');
+    expect(team.metaAt(['members', 0, 'contact'])?.type).toBe('null | object');
+    expect(team.metaAt(['members', 0])?.constraints).toEqual(expect.arrayContaining(['required: id, name, role', 'no other keys']));
+  });
+
+  it('flags deprecated and write-only nodes', () => {
+    const cfg = model('app-config');
+    expect(cfg.metaAt(['cacheTtl'])).toMatchObject({ deprecated: true, description: 'Use cache.ttlSeconds.' });
+    expect(cfg.metaAt(['database', 'password'], { database: { driver: 'postgres' } })?.writeOnly).toBe(true);
+    expect(model('filters-demo').metaAt(['archive'])?.deprecated).toBe(true);
+  });
+
+  it('inherits readOnly from ancestors', () => {
+    const team = model('team');
+    expect(team.metaAt(['members', 0, 'id'])?.readOnly).toBe(true);
+    expect(team.metaAt(['metadata', 'stats'])?.readOnly).toBe(true);
+    expect(team.metaAt(['metadata', 'stats', 'totalMembers'])?.readOnly).toBe(true);
+    expect(team.metaAt(['metadata', 'tags'])?.readOnly).toBe(false);
+  });
+
+  it('is undefined where the schema says nothing', () => {
+    expect(model('team').metaAt(['members', 0, 'nope'])).toBeUndefined();
+  });
+});
+
+describe('declaredKeysAt', () => {
+  it('lists declared keys in schema order', () => {
+    expect(model('team').declaredKeysAt(['members', 0])).toEqual(
+      ['id', 'name', 'role', 'active', 'skills', 'contact', 'certifications', 'notes', 'reports', 'patents', 'awards'],
+    );
+  });
+
+  it('unions the keys of all variants', () => {
+    const keys = model('filters-demo').declaredKeysAt(['items', 0]);
+    expect(keys).toEqual(expect.arrayContaining(['id', 'type', 'title', 'assignee', 'notes', 'date']));
+    expect(new Set(keys).size).toBe(keys.length);
+  });
+
+  it('leaves out deprecated keys and unknown paths', () => {
+    expect(model('app-config').declaredKeysAt([])).not.toContain('cacheTtl');
+    expect(model('team').declaredKeysAt(['nowhere'])).toEqual([]);
+  });
+});
+
+describe('permitsKey', () => {
+  it('refuses keys a closed object does not declare', () => {
+    const team = model('team');
+    const data = load('team.json');
+    expect(team.permitsKey(['members', 0], data, 'notes')).toBe(true);
+    expect(team.permitsKey(['members', 0], data, 'hobby')).toBe(false);
+  });
+
+  it('checks the row\'s own variant', () => {
+    const board = load('plugin-demo/filters-demo.json');
+    const m = model('filters-demo');
+    expect(m.permitsKey(['items', 0], board, 'assignee')).toBe(true);
+    expect(m.permitsKey(['items', 0], board, 'date')).toBe(false);
+    expect(m.permitsKey(['items', 5], board, 'date')).toBe(true);
+  });
+
+  it('allows anything in open objects and where the schema is silent', () => {
+    expect(model('search-demo').permitsKey(['settings'], load('search-demo.json'), 'anything')).toBe(true);
+    expect(model('team').permitsKey(['nowhere'], {}, 'x')).toBe(true);
+  });
+
+  it('allows any key that a map admits', () => {
+    const cfg = model('app-config');
+    expect(cfg.permitsKey(['features'], load('config/app-config.json'), 'newFlag')).toBe(true);
+  });
+});
+
+describe('seed', () => {
+  const team = model('team');
+  const cfg = model('app-config');
+  const at = (m: SchemaModel, ...path: Array<string | number>) => m.seed(m.nodesAt(path)[0]);
+
+  it('prefers default, then const, then the first enum value', () => {
+    expect(at(team, 'members', 0, 'skills')).toEqual([]);
+    expect(at(team, 'members', 0, 'active')).toBe(true);
+    expect(at(team, 'members', 0, 'role')).toBe('engineer');
+    expect(at(cfg, 'server', 'port')).toBe(8080);
+  });
+
+  it('falls back to the empty value of the type, respecting a minimum', () => {
+    expect(at(team, 'members', 0, 'name')).toBe('');
+    expect(at(team, 'members', 0, 'id')).toBe(1);
+    expect(at(team, 'members', 0, 'patents')).toBe(0);
+    expect(at(team, 'members', 0, 'notes')).toBe('');
+    expect(at(team, 'members', 0, 'awards')).toEqual([]);
+  });
+
+  it('seeds the required keys of an object', () => {
+    expect(at(cfg, 'server', 'tls')).toEqual({ certFile: '', keyFile: '' });
+    expect(at(team, 'members', 0)).toEqual({ id: 1, name: '', role: 'engineer' });
+  });
+
+  it('takes the first real alternative, preferring a value to null', () => {
+    expect(at(team, 'members', 0, 'contact')).toEqual({ email: '' });
+    expect(at(cfg, 'features', 'x')).toBe(false);
+    expect(at(cfg, 'database')).toEqual({ driver: 'sqlite', file: '' });
+  });
+
+  it('does not recurse forever through required self-references', () => {
+    const m = new SchemaModel({ $defs: { n: { type: 'object', required: ['child'], properties: { child: { $ref: '#/$defs/n' } } } }, $ref: '#/$defs/n' });
+    expect(() => m.seed(m.root)).not.toThrow();
+  });
+
+  it("returns a copy, never the schema's own default", () => {
+    const m = new SchemaModel({ default: { a: [1] } });
+    const first = m.seed(m.root) as { a: number[] };
+    first.a.push(2);
+    expect(m.seed(m.root)).toEqual({ a: [1] });
+  });
+});
+
+describe('typesAt', () => {
+  it('reads the types allowed at a path, whatever the value is now', () => {
+    const team = model('team');
+    expect(team.typesAt(['members', 0, 'contact'])).toEqual(['null', 'object']);
+    expect(team.typesAt(['founded'])).toEqual(['number']);
+    expect(team.typesAt(['members', 0, 'skills'])).toEqual(['array']);
+  });
+
+  it('is undefined where the schema says nothing', () => {
+    expect(model('team').typesAt(['members', 0, 'nope'])).toBeUndefined();
+  });
+});
+
 describe('validate', () => {
   const cases: Array<[string, string]> = [
     ['team', 'team.json'],

@@ -1,10 +1,22 @@
-@if (editMode.enabled()) {
+@if (editMode.enabled() && !locked) {
   <span class="ev">
-    <select class="type-select" (change)="onTypeChange($event)" (click)="$event.stopPropagation()">
-      @for (t of types; track t) {
-        <option [value]="t" [selected]="t === type">{{ t }}</option>
-      }
-    </select>
+    @if (choices; as options) {
+      <select class="type-select choice-select" [class.not-allowed]="choiceIndex < 0" (change)="onChoice($event)" (click)="$event.stopPropagation()">
+        @if (choiceIndex < 0) {
+          <option value="-1" selected>{{ choiceLabel(value) }} (not allowed)</option>
+        }
+        @for (c of options; track $index) {
+          <option [value]="$index" [selected]="$index === choiceIndex">{{ choiceLabel(c) }}</option>
+        }
+      </select>
+    } @else {
+    @if (typeOptions.length > 1) {
+      <select class="type-select" (change)="onTypeChange($event)" (click)="$event.stopPropagation()">
+        @for (t of typeOptions; track t) {
+          <option [value]="t" [selected]="t === type">{{ t }}</option>
+        }
+      </select>
+    }
 
     @if (type === 'string') {
       <input
@@ -37,6 +49,7 @@
     } @else if (type === 'null') {
       <span class="val null">null</span>
     }
+    }
   </span>
 } @else {
   @if (type === 'null') {
@@ -48,4 +61,7 @@
   } @else if (type === 'string') {
     <span class="val str"><app-hl [text]="'' + value" /></span>
   }
+}
+@if (locked) {
+  <span class="lock" title="Read-only (schema)">🔒</span>
 }

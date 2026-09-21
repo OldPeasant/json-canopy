@@ -2,6 +2,7 @@ import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { JsonType, defaultForType, typeOf } from '../json-edit.util';
 import { HighlightComponent } from '../highlight/highlight.component';
 import { EditModeService } from '../services/edit-mode.service';
+import { SchemaService } from '../services/schema.service';
 
 @Component({
   selector: 'app-editable-value',
@@ -12,14 +13,52 @@ import { EditModeService } from '../services/edit-mode.service';
 })
 export class EditableValueComponent {
   @Input({ required: true }) value: unknown;
+  // Instance key of the node this value belongs to; how the schema is asked about it.
+  @Input() uid: string = '';
   @Output() valueChange = new EventEmitter<unknown>();
 
   protected editMode = inject(EditModeService);
+  private schema = inject(SchemaService);
 
   readonly types: JsonType[] = ['string', 'number', 'boolean', 'null', 'object', 'array'];
 
+  // Read-only per the schema: shown as plain text even in edit mode.
+  get locked(): boolean {
+    return this.editMode.enabled() && this.schema.readOnlyFor(this.uid);
+  }
+
   get type(): JsonType {
     return typeOf(this.value);
+  }
+
+  // The values the schema allows here, when it lists them all: shown as a
+  // dropdown instead of a free-form input.
+  get choices(): readonly (string | number | boolean | null)[] | undefined {
+    return this.schema.choicesFor(this.uid);
+  }
+
+  // Index of the current value among the choices, or -1 if it isn't one.
+  get choiceIndex(): number {
+    const now = JSON.stringify(this.value);
+    return this.choices?.findIndex(c => JSON.stringify(c) === now) ?? -1;
+  }
+
+  choiceLabel(value: unknown): string {
+    return value === '' ? '""' : typeof value === 'string' ? value : JSON.stringify(value);
+  }
+
+  // What the type dropdown offers: only the types the schema allows, plus
+  // the current one so the dropdown can always show what is there now. With
+  // a single option there is nothing to choose, so the dropdown is hidden.
+  get typeOptions(): JsonType[] {
+    const allowed = this.schema.typesFor(this.uid);
+    return allowed ? this.types.filter(t => allowed.includes(t) || t === this.type) : this.types;
+  }
+
+  onChoice(event: Event): void {
+    const index = Number((event.target as HTMLSelectElement).value);
+    const choices = this.choices;
+    if (choices && index >= 0 && index !== this.choiceIndex) this.valueChange.emit(choices[index]);
   }
 
   onTypeChange(event: Event): void {

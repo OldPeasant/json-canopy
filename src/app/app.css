@@ -157,3 +157,120 @@
   gap: 0.75rem;
   flex-shrink: 0;
 }
+
+.schema-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  flex-shrink: 0;
+  margin-top: -0.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8125rem;
+}
+
+.schema-label {
+  font-size: 0.75rem;
+  letter-spacing: var(--heading-tracking);
+  text-transform: var(--heading-transform);
+  color: var(--text-faint);
+}
+
+.schema-name {
+  font-family: var(--font-mono);
+  color: var(--text);
+  max-width: 24rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schema-name.none {
+  color: var(--text-faint);
+}
+
+.schema-hint {
+  color: var(--text-muted);
+  max-width: 36rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.schema-spacer {
+  flex: 1;
+}
+
+.schema-status {
+  font-family: var(--font-mono);
+}
+
+.schema-status.ok {
+  color: var(--val-str);
+}
+
+.schema-status.bad {
+  color: var(--danger);
+}
+
+button.schema-status {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+}
+
+button.schema-status:hover {
+  text-shadow: var(--glow);
+}
+
+.problem-list {
+  flex-shrink: 0;
+  max-height: 12rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  list-style: none;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  color: var(--danger-text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.6;
+}
+
+.problem-path {
+  color: var(--text);
+  margin-right: 0.5rem;
+}
+
+.problem-list .more {
+  color: var(--text-muted);
+}
+
+.problem-jump {
+  display: block;
+  width: 100%;
+  padding: 0 0.25rem;
+  background: none;
+  border: none;
+  border-radius: 2px;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.problem-jump:hover:not(:disabled),
+.problem-jump:focus-visible {
+  background: rgba(255, 56, 96, 0.18);
+  outline: none;
+}
+
+.problem-jump:disabled {
+  cursor: default;
+}
