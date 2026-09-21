@@ -18,6 +18,8 @@ export interface RevealStep {
   colKey?: string;
   /** Position of the child among the container's children — how far pagination must reveal. */
   position: number;
+  /** For an object: the key of the child, so a form can find its own position for it. */
+  key?: string;
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> =>
@@ -62,7 +64,7 @@ export function revealSteps(data: unknown, path: Path): RevealStep[] {
       }
     } else if (isObject(value)) {
       const key = String(seg);
-      steps.push({ uid, path: sp, kind: 'object', container: value, colKey: `${sp}:${key}`, position: Object.keys(value).indexOf(key) });
+      steps.push({ uid, path: sp, kind: 'object', container: value, colKey: `${sp}:${key}`, position: Object.keys(value).indexOf(key), key });
       uid = appendKey(uid, key);
       sp = sp ? `${sp}.${key}` : key;
       value = value[key];

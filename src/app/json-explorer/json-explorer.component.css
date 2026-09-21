@@ -12,10 +12,6 @@
   flex-shrink: 0;
 }
 
-.toolbar-spacer {
-  flex: 1;
-}
-
 .filter-box {
   position: relative;
   display: flex;
@@ -146,9 +142,47 @@
   box-shadow: none;
 }
 
+.workspace {
+  display: flex;
+  flex: 1;
+  gap: 1rem;
+  min-height: 0;
+}
+
 .json-output {
   flex: 1;
+  min-width: 0;
   overflow: auto;
+}
+
+/* A side panel keeps its own scroll, so it stays in reach while the form scrolls. */
+.side {
+  flex: 0 0 22rem;
+  align-self: flex-start;
+  max-height: 100%;
+  overflow: auto;
+  box-sizing: border-box;
+}
+
+.side.narrow {
+  flex-basis: 15rem;
+}
+
+.panel-toggle {
+  padding: 0.35rem 0.6rem;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.panel-toggle.is-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--border-strong);
 }
 
 .keys-only {

@@ -1,0 +1,50 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text);
+}
+
+.head {
+  font-family: var(--font-ui);
+  font-size: 0.6875rem;
+  letter-spacing: var(--heading-tracking);
+  text-transform: var(--heading-transform);
+  color: var(--text-faint);
+}
+
+.path {
+  color: var(--text-muted);
+  word-break: break-all;
+}
+
+.none {
+  margin: 0;
+  color: var(--text-faint);
+}
+
+.problems {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.problems-head {
+  color: var(--danger);
+}
+
+.problem {
+  color: var(--danger-text);
+}
+
+.problem.more {
+  color: var(--text-faint);
+}

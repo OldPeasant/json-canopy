@@ -1,36 +1,38 @@
 <div class="json-explorer">
   <div class="toolbar">
-    @if (layout === 'tables') {
-      <div class="filter-box">
-        <input
-          type="text"
-          placeholder="Search names and values…"
-          [value]="filter.text()"
-          (input)="onFilterInput($event)"
-        />
-        @if (filter.text()) {
-          <button type="button" class="clear-filter" (click)="filter.clear()" title="Clear filter">×</button>
-        }
-      </div>
-      <div class="filter-modes" role="group" aria-label="Filter mode">
-        @for (m of filterModes; track m.value) {
-          <button
-            type="button"
-            class="filter-mode-btn"
-            [class.is-active]="filter.mode() === m.value"
-            (click)="filter.setMode(m.value)"
-            [title]="m.hint"
-          >
-            {{ m.label }}
-          </button>
-        }
-      </div>
-      <label class="keys-only" title="Search attribute names only; ignore values">
-        <input type="checkbox" [checked]="filter.keysOnly()" (change)="filter.setKeysOnly($any($event.target).checked)" />
-        Names only
-      </label>
-    } @else {
-      <span class="toolbar-spacer"></span>
+    <div class="filter-box">
+      <input
+        type="text"
+        placeholder="Search names and values…"
+        [value]="filter.text()"
+        (input)="onFilterInput($event)"
+      />
+      @if (filter.text()) {
+        <button type="button" class="clear-filter" (click)="filter.clear()" title="Clear filter">×</button>
+      }
+    </div>
+    <div class="filter-modes" role="group" aria-label="Filter mode">
+      @for (m of filterModes; track m.value) {
+        <button
+          type="button"
+          class="filter-mode-btn"
+          [class.is-active]="filter.mode() === m.value"
+          (click)="filter.setMode(m.value)"
+          [title]="m.hint"
+        >
+          {{ m.label }}
+        </button>
+      }
+    </div>
+    <label class="keys-only" title="Search attribute names only; ignore values">
+      <input type="checkbox" [checked]="filter.keysOnly()" (change)="filter.setKeysOnly($any($event.target).checked)" />
+      Names only
+    </label>
+    @if (layout === 'form') {
+      <button type="button" class="panel-toggle" [class.is-active]="panels.outlineOpen()" (click)="panels.toggleOutline()" title="Navigate the document by its structure">Outline</button>
+    }
+    @if (layout === 'form' && schema.model()) {
+      <button type="button" class="panel-toggle" [class.is-active]="panels.docsOpen()" (click)="panels.toggleDocs()" title="Show what the schema says about the field in focus">Docs</button>
     }
     <button
       type="button"
@@ -43,14 +45,22 @@
       {{ editMode.readOnly() ? 'Read-only' : (editMode.enabled() ? 'Go to view mode' : 'Go to edit mode') }}
     </button>
   </div>
-  @if (layout === 'tables' && filter.text()) {
+  @if (filter.text()) {
     <div class="filter-hint"><strong>{{ filter.mode() }}:</strong> {{ modeHint }}</div>
   }
-  <div class="json-output">
-    @if (layout === 'form') {
-      <app-json-form [value]="value" path="" (valueChange)="valueChange.emit($event)" />
-    } @else {
-      <app-json-table [value]="value" path="" (valueChange)="valueChange.emit($event)" />
+  <div class="workspace">
+    @if (layout === 'form' && panels.outlineOpen()) {
+      <app-outline class="side narrow" [value]="value" />
+    }
+    <div class="json-output">
+      @if (layout === 'form') {
+        <app-json-form [value]="value" path="" (valueChange)="valueChange.emit($event)" />
+      } @else {
+        <app-json-table [value]="value" path="" (valueChange)="valueChange.emit($event)" />
+      }
+    </div>
+    @if (layout === 'form' && schema.model() && panels.docsOpen()) {
+      <app-docs-panel class="side" />
     }
   </div>
 </div>

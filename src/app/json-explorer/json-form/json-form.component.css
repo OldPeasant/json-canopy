@@ -4,6 +4,8 @@
 }
 
 .fields {
+  --label-width: 15rem;
+  --step: 1.4rem; /* what one level of .group indents by */
   display: flex;
   flex-direction: column;
 }
@@ -11,7 +13,7 @@
 /* A scalar field: label on the left, control on the right. */
 .field {
   display: grid;
-  grid-template-columns: minmax(9rem, 15rem) 1fr;
+  grid-template-columns: max(6rem, calc(var(--label-width) - var(--depth, 0) * var(--step))) 1fr;
   align-items: start;
   gap: 0.25rem 1rem;
   padding: 0.4rem 0;
@@ -43,6 +45,12 @@
   font-weight: 700;
 }
 
+.name.dim {
+  opacity: 0.4;
+  font-style: italic;
+  font-weight: 400;
+}
+
 .req {
   color: var(--danger);
 }
@@ -57,11 +65,12 @@
   min-width: 0;
 }
 
-/* Nested object: indented under its label with a rail. */
+/* Nested object: indented under its label with a rail. The rail is drawn
+   inside the padding so the indentation is exactly the --step above. */
 .group {
   margin: 0.25rem 0 0.25rem 0.4rem;
   padding-left: 1rem;
-  border-left: 1px solid var(--border-strong);
+  box-shadow: inset 1px 0 0 var(--border-strong);
 }
 
 /* A declared key the data lacks: shown dim, with what leaving it out means. */
@@ -245,4 +254,37 @@
   font-family: var(--font-mono);
   font-size: 0.75rem;
   cursor: pointer;
+}
+
+/* Under an object whose field count was clipped to a byte budget (see reveal.util.ts). */
+.reveal-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px;
+}
+
+.reveal-info {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  margin-right: 2px;
+  white-space: nowrap;
+}
+
+.reveal-btn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 2px 7px;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.reveal-btn:hover {
+  color: var(--accent);
+  border-color: var(--border-strong);
 }

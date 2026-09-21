@@ -25,16 +25,16 @@
       </div>
     }
   }
-  <div class="fields">
-    @for (f of fields; track f.key) {
+  <div class="fields" [style.--depth]="depth">
+    @for (f of pagedFields; track f.key) {
       @let child = childOf(f.key);
       @let kind = kindOf(child);
-      <div class="field" [class.ghost]="f.ghost" [class.block]="!f.ghost && kind !== 'scalar'" [class.deprecated]="isDeprecated(f.key)">
+      <div class="field" [attr.data-node]="childUid(f.key)" (focusin)="onFocus(f.key, $event)" (click)="onFocus(f.key, $event)" [class.ghost]="f.ghost" [class.block]="!f.ghost && kind !== 'scalar'" [class.deprecated]="isDeprecated(f.key)">
         <div class="label">
           @if (kind === 'object' && !f.ghost) {
             <button type="button" class="fold" (click)="toggle(f.key)" [title]="isCollapsed(f.key) ? 'Expand' : 'Collapse'">{{ isCollapsed(f.key) ? '▸' : '▾' }}</button>
           }
-          <span class="name">{{ f.key }}</span>@if (f.required) {<b class="req" title="Required">*</b>}
+          <span class="name" [class.dim]="keyDim(f.key)"><app-hl [text]="f.key" kind="key" /></span>@if (f.required) {<b class="req" title="Required">*</b>}
           <app-schema-info [nodeKey]="childUid(f.key)" />
           @if (!f.ghost && kind !== 'array' && problemsAt(f.key).length) {
             <span class="problem-badge" [attr.data-problem-key]="childUid(f.key)" [title]="problemTitle(f.key)">⚠</span>
@@ -59,11 +59,11 @@
               </button>
             } @else {
               <div class="group">
-                <app-json-form [value]="child" [path]="childPath(f.key)" [uid]="childUid(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
+                <app-json-form [value]="child" [path]="childPath(f.key)" [uid]="childUid(f.key)" [depth]="depth + 1" [forceVisible]="childForce(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
               </div>
             }
           } @else if (kind === 'array') {
-            <app-json-table [value]="child" [path]="childPath(f.key)" [uid]="childUid(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
+            <app-json-table [value]="child" [path]="childPath(f.key)" [uid]="childUid(f.key)" [forceVisible]="childForce(f.key)" [filterCollapsed]="childFilterCollapsed(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
           } @else {
             <app-editable-value [value]="child" [uid]="childUid(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
           }
@@ -74,6 +74,15 @@
       <span class="empty">&#123;&#125;</span>
     }
   </div>
+  @if (hasMore) {
+    <div class="reveal-bar">
+      <span class="reveal-info">{{ revealedCount }} / {{ visibleFields.length }}</span>
+      @for (batch of reveal.batches; track batch) {
+        <button type="button" class="reveal-btn" (click)="revealMore(batch)">+{{ batch }}</button>
+      }
+      <button type="button" class="reveal-btn" (click)="revealAll()">Show all {{ visibleFields.length }}</button>
+    </div>
+  }
   @if (canEdit) {
     <span class="add-row">
       <input #newKey class="add-input" placeholder="key…" (keydown.enter)="addEntry(newKey.value); newKey.value = ''" />

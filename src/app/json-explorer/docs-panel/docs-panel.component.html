@@ -1,0 +1,22 @@
+<header class="head">Docs</header>
+@if (key !== undefined) {
+  <div class="path">{{ path }}</div>
+  @if (meta; as m) {
+    <app-schema-doc [meta]="m" [required]="required" />
+  } @else {
+    <p class="none">The schema says nothing about this key.</p>
+  }
+  @if (problems.length || below) {
+    <div class="problems">
+      <span class="problems-head">Problems</span>
+      @for (p of problems; track $index) {
+        <span class="problem">{{ p.message }}</span>
+      }
+      @if (below) {
+        <span class="problem more">{{ below }} more below</span>
+      }
+    </div>
+  }
+} @else {
+  <p class="none">Focus a field to see what the schema says about it.</p>
+}

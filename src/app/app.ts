@@ -200,7 +200,10 @@ export class App {
 
   private useSchema(text: string, name: string, origin: string): boolean {
     const loaded = this.schema.load(text, name, origin);
-    if (loaded) this.layout.suggest(this.data(), true);
+    if (loaded) {
+      this.layout.setSchema(this.schema.key());
+      this.layout.suggest(this.data(), true);
+    }
     return loaded;
   }
 
@@ -228,6 +231,7 @@ export class App {
   private dropSchema(): void {
     this.fromHost = false;
     this.schema.clear();
+    this.layout.setSchema(undefined);
     this.layout.suggest(this.data(), false);
   }
 

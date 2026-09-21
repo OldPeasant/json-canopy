@@ -1,15 +1,19 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { DocsPanelComponent } from './docs-panel/docs-panel.component';
 import { JsonFormComponent } from './json-form/json-form.component';
+import { OutlineComponent } from './outline/outline.component';
 import { JsonTableComponent } from './json-table/json-table.component';
 import type { Layout } from './layout.util';
 import { FilterMode, FilterService } from './services/filter.service';
 import { EditModeService } from './services/edit-mode.service';
 import { ColumnSyncService } from './services/column-sync.service';
+import { PanelService } from './services/panel.service';
+import { SchemaService } from './services/schema.service';
 
 @Component({
   selector: 'app-json-explorer',
   standalone: true,
-  imports: [JsonTableComponent, JsonFormComponent],
+  imports: [JsonTableComponent, JsonFormComponent, DocsPanelComponent, OutlineComponent],
   templateUrl: './json-explorer.component.html',
   styleUrl: './json-explorer.component.css',
 })
@@ -21,8 +25,7 @@ export class JsonExplorerComponent {
   // keep sharing the same view configuration instead of forgetting it.
   @Input({ required: true }) value: unknown;
 
-  // Two renderings of the same document. The form has no search: what a
-  // search does to a form (hide fields?) is an open question.
+  // Two renderings of the same document; the search works in both.
   @Input() layout: Layout = 'tables';
 
   // Bubbled up from the root `app-json-table` unchanged — `App` is the one
@@ -31,6 +34,8 @@ export class JsonExplorerComponent {
 
   protected filter = inject(FilterService);
   protected editMode = inject(EditModeService);
+  protected panels = inject(PanelService);
+  protected schema = inject(SchemaService);
   private colSync = inject(ColumnSyncService);
 
   // Shown as buttons next to the search box, in this order.

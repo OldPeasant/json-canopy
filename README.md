@@ -90,7 +90,10 @@ A **Tables | Form** toggle switches between two renderings of the same
 document. The form shows objects as labelled fields in schema order, and
 oneOf/anyOf with a discriminator as a variant picker that asks before it
 removes anything. Documents that are essentially lists of records open as
-tables, everything else as a form, until you choose.
+tables, everything else as a form, until you choose; the choice is
+remembered per schema. The search works in both. In the form, an
+**Outline** panel navigates by structure (with problem counts) and a
+**Docs** panel shows what the schema says about the field in focus.
 
 Supported: `type`, `properties`, `required`, `enum`/`const`, `items`,
 `$ref`/`$defs`, `additionalProperties`, `patternProperties`, `oneOf`,

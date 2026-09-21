@@ -1,0 +1,43 @@
+@if (meta.title) {
+  <span class="title">{{ meta.title }}</span>
+}
+@if (meta.type || required || meta.deprecated || meta.readOnly || meta.writeOnly) {
+  <span class="line">
+    @if (meta.type) {
+      <code class="type">{{ meta.type }}</code>
+    }
+    @if (required) {
+      <span class="badge warn">required</span>
+    }
+    @if (meta.deprecated) {
+      <span class="badge warn">deprecated</span>
+    }
+    @if (meta.readOnly) {
+      <span class="badge">read-only</span>
+    }
+    @if (meta.writeOnly) {
+      <span class="badge">write-only</span>
+    }
+  </span>
+}
+@if (meta.description) {
+  <span class="desc">{{ meta.description }}</span>
+}
+@if (meta.constraints.length) {
+  <span class="line">
+    @for (c of meta.constraints; track $index) {
+      <span class="badge">{{ c }}</span>
+    }
+  </span>
+}
+@if (meta.hasDefault) {
+  <span class="line">default <code>{{ json(meta.default) }}</code></span>
+}
+@if (meta.examples?.length) {
+  <span class="line">
+    e.g.
+    @for (e of meta.examples!.slice(0, 3); track $index) {
+      <code>{{ json(e) }}</code>
+    }
+  </span>
+}

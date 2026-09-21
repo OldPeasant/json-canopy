@@ -25,6 +25,14 @@ export class SchemaService {
   // Why the last attempt to load a schema failed, if it did.
   readonly error = this._error.asReadonly();
 
+  // What identifies the loaded schema across documents: its `$id`, else its name.
+  readonly key = computed(() => {
+    const model = this._model();
+    if (!model) return undefined;
+    const id = model.root.$id;
+    return typeof id === 'string' && id ? id : this._name();
+  });
+
   readonly problems = computed(() => {
     const model = this._model();
     const data = this.data();

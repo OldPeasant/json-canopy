@@ -21,9 +21,6 @@
 .pop {
   position: fixed;
   z-index: 50;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
   width: max-content;
   max-width: 24rem;
   padding: 0.6rem 0.75rem;
@@ -32,48 +29,5 @@
   border-radius: 4px;
   box-shadow: var(--shadow-pop);
   color: var(--text);
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 400;
-  font-style: normal;
-  line-height: 1.5;
-  text-align: left;
-  white-space: normal;
   cursor: default;
-}
-
-.title {
-  color: var(--accent);
-  font-weight: 700;
-}
-
-.line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.desc {
-  color: var(--text);
-}
-
-code {
-  color: var(--val-str);
-}
-
-code.type {
-  color: var(--val-num);
-}
-
-.badge {
-  padding: 0 0.4rem;
-  border: 1px solid var(--border);
-  border-radius: 3px;
-  color: var(--text-muted);
-}
-
-.badge.warn {
-  color: var(--danger-text);
-  border-color: var(--danger-border);
 }

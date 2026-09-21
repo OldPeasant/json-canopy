@@ -143,8 +143,9 @@ The project has no Kotlin test setup (JUnit is not in the offline cache).
 
 ## Open questions
 
-- Per-file or per-schema persistence of the layout choice, and where it is
-  stored (webview storage versus IDE settings in the plugin).
+- The remembered layout lives in browser storage. In the IntelliJ webview
+  (a page loaded from a temporary file) that may not survive restarts;
+  storing it in IDE settings through the bridge would be the robust fix.
 - Semantic checks beyond the schema (for example `needs` and `reports`
   refer to existing ids). Out of scope for now; revisit after phase 3.
 - Consent: once per download today. A per-host "always allow" (e.g. for
@@ -166,9 +167,14 @@ The project has no Kotlin test setup (JUnit is not in the offline cache).
   - [x] Ghost keys: chips under objects, dim columns in tables of records, schema-seeded values
   - [ ] Optional-columns chips (collapse sparse columns) — deferred; ghost columns cover "what can I add"
   - [x] `ⓘ` popover with descriptions, constraints, default and examples
-- [ ] Phase 2: form layout
+- [x] Phase 2: form layout
   - [x] First slice: Tables/Form toggle, default rule, objects as fields in schema order, ghost fields, collapsible groups, arrays as embedded tables, problems, jump, editing
-  - [ ] Outline panel, docs panel, search in the form, remembered choice, variant picker (phase 3)
+  - [x] Fixed value column at every depth
+  - [x] Remembered layout choice, per schema (best effort: browser storage)
+  - [x] Search in the form: the table's three modes, on fields instead of cells
+  - [x] Pagination of large objects (own reveal counts, capped first page)
+  - [x] Docs panel (follows the focused field, shows its problems)
+  - [x] Outline (structure with problem counts, click to navigate)
 - [~] Phase 3: variants and alternatives
   - [x] Variant picker in the form (chips, inline confirmation listing what is removed, reset or added)
   - [x] Switching from a table cell: non-destructive (adds required keys, resets values that no longer fit)

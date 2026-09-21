@@ -1,5 +1,6 @@
 import { Component, Input, inject } from '@angular/core';
 import type { NodeMeta } from '../../schema';
+import { SchemaDocComponent } from '../schema-doc/schema-doc.component';
 import { SchemaService } from '../services/schema.service';
 
 // An ⓘ next to a key that shows what the schema says about it — description,
@@ -8,6 +9,7 @@ import { SchemaService } from '../services/schema.service';
 @Component({
   selector: 'app-schema-info',
   standalone: true,
+  imports: [SchemaDocComponent],
   templateUrl: './schema-info.component.html',
   styleUrl: './schema-info.component.css',
 })
@@ -45,9 +47,5 @@ export class SchemaInfoComponent {
 
   hide(): void {
     this.open = false;
-  }
-
-  json(value: unknown): string {
-    return JSON.stringify(value);
   }
 }

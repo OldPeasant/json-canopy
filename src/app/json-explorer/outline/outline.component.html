@@ -1,0 +1,20 @@
+<header class="head">Outline</header>
+@for (r of rows; track r.key) {
+  @if (r.kind === 'more') {
+    <span class="more" [style.padding-left.rem]="r.depth * 0.9 + 0.4">{{ r.label }}</span>
+  } @else {
+    <button type="button" class="row" [class.is-current]="isCurrent(r)" [style.padding-left.rem]="r.depth * 0.9 + 0.4" (click)="go(r)">
+      <span class="label">{{ r.label }}</span>
+      @if (r.kind === 'object') {
+        <span class="size">{{ '{' + r.size + '}' }}</span>
+      } @else if (r.kind === 'array') {
+        <span class="size">[{{ r.size }}]</span>
+      }
+      @if (r.problems) {
+        <span class="bad">⚠ {{ r.problems }}</span>
+      }
+    </button>
+  }
+} @empty {
+  <p class="none">Nothing to outline.</p>
+}

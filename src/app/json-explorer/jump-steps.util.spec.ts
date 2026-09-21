@@ -64,6 +64,11 @@ describe('revealSteps', () => {
     expect(() => revealSteps(doc, ['team', 'nope', 'deeper'])).not.toThrow();
   });
 
+  it('names the key of an object step', () => {
+    expect(revealSteps(doc, ['tags'])[0].key).toBe('tags');
+    expect(revealSteps(doc, ['members', 0, 'contact', 'email']).map((s) => s.key)).toEqual(['members', undefined, 'email']);
+  });
+
   it('reports the position of a key among its siblings', () => {
     expect(revealSteps(doc, ['tags'])[0].position).toBe(2);
   });
