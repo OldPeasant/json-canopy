@@ -486,6 +486,23 @@ describe('validate', () => {
   });
 });
 
+describe('the $schema key', () => {
+  it('is not an unknown key just because the schema is closed', () => {
+    const team = { ...load('team.json'), $schema: '../schemas/team.schema.json' };
+    expect(model('team').validate(team)).toEqual([]);
+  });
+
+  it('is still checked where the schema declares it', () => {
+    const schema = { properties: { $schema: { type: 'string' } }, additionalProperties: false };
+    expect(new SchemaModel(schema).validate({ $schema: 3 }).map((p) => p.keyword)).toEqual(['type']);
+  });
+
+  it('does not excuse other unknown keys', () => {
+    const team = { ...load('team.json'), $schema: 'x', nope: 1 };
+    expect(model('team').validate(team).map((p) => p.path.join('.'))).toEqual(['nope']);
+  });
+});
+
 describe('errors for alternatives', () => {
   const describeAll = (m: SchemaModel, data: unknown) => m.validate(data).map((p) => `${p.path.join('.')} :: ${p.message}`);
 

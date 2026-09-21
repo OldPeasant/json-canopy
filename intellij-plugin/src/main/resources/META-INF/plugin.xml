@@ -79,6 +79,11 @@
          depends element to name. -->
     <depends optional="true" config-file="withJcef.xml">com.intellij.modules.jcef</depends>
 
+    <!-- The bundled JSON plugin knows which schema applies to a file (user
+         mappings, the SchemaStore catalog, a file's $schema). Optional: without
+         it the plugin only resolves a `$schema` written in the file itself. -->
+    <depends optional="true" config-file="withJson.xml">com.intellij.modules.json</depends>
+
     <extensions defaultExtensionNs="com.intellij">
         <fileEditorProvider implementation="ch.sonensei.canopy.editor.CanopyFileEditorProvider"/>
     </extensions>

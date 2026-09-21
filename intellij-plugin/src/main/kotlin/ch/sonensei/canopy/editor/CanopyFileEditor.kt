@@ -1,6 +1,8 @@
 package ch.sonensei.canopy.editor
 
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.command.WriteCommandAction
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.editor.Document
 import com.intellij.openapi.editor.event.DocumentEvent
 import com.intellij.openapi.editor.event.DocumentListener
@@ -17,6 +19,9 @@ import com.intellij.ui.jcef.JBCefApp
 import com.intellij.ui.jcef.JBCefBrowser
 import ch.sonensei.canopy.bridge.CanopyBridge
 import ch.sonensei.canopy.bridge.LoadDocumentPayload
+import ch.sonensei.canopy.schema.RemoteSchemas
+import ch.sonensei.canopy.schema.SchemaResolution
+import ch.sonensei.canopy.schema.SchemaResolver
 import ch.sonensei.canopy.theme.ThemeSync
 import java.awt.BorderLayout
 import java.beans.PropertyChangeListener
@@ -65,6 +70,26 @@ class CanopyFileEditor(
 
     private val document: Document? = FileDocumentManager.getInstance().getDocument(file)
 
+    private val schemaResolver = SchemaResolver(project, file)
+
+    // The remote schema the page was last asked about, and one the user has
+    // agreed to and we have downloaded. The page's FETCH_SCHEMA is honoured
+    // only for the former, so a request from the page cannot make the IDE
+    // fetch an address nobody offered; the latter is kept for this editor's
+    // lifetime so an external edit does not ask the same question again.
+    @Volatile
+    private var offeredUrl: String? = null
+
+    @Volatile
+    private var downloaded: SchemaResolution.Found? = null
+
+    private var downloadedFrom: String? = null
+
+    // Set on dispose so a schema lookup still running on a pooled thread
+    // does not talk to a browser that is gone.
+    @Volatile
+    private var disposed = false
+
     // Tracks the text we last knew about (either sent to the page, or
     // received from it) so the DocumentListener below can tell "this change
     // is our own write-back echoing back" apart from "this change came from
@@ -82,12 +107,15 @@ class CanopyFileEditor(
             lastKnownText = newText
             propertyChangeSupport.firePropertyChange(PROP_MODIFIED, null, null)
             bridge?.sendExternalReload(newText)
+            // The edit may have changed which schema the file names.
+            sendSchema(newText)
         }
     }
 
     init {
         bridge?.addReadyHandler { sendDocument() }
         bridge?.addDocumentChangedHandler { text -> applyIncomingEdit(text) }
+        bridge?.addFetchSchemaHandler { url -> fetchOfferedSchema(url) }
         // The Disposable-scoped overload: the listener is torn down
         // automatically when `this` (the FileEditor) is disposed, so
         // there's no matching removeDocumentListener call in dispose().
@@ -126,6 +154,42 @@ class CanopyFileEditor(
                 readOnly = !file.isWritable,
             ),
         )
+        sendSchema(text)
+    }
+
+    // Off the UI thread: resolving can read files and ask the IDE's schema
+    // support. The page hears the answer as SET_SCHEMA.
+    private fun sendSchema(documentText: String) {
+        if (bridge == null) return
+        ApplicationManager.getApplication().executeOnPooledThread {
+            var resolution = try {
+                schemaResolver.resolve(documentText)
+            } catch (e: Exception) {
+                SchemaResolution.Failed("Could not look up the schema: ${e.message ?: e.javaClass.simpleName}")
+            }
+            if (resolution is SchemaResolution.NeedsConsent) {
+                val already = downloaded
+                if (already != null && downloadedFrom == resolution.url) resolution = already else offeredUrl = resolution.url
+            }
+            if (!disposed) bridge.sendSetSchema(resolution.toPayload())
+        }
+    }
+
+    // The user said yes to downloading the schema offered earlier.
+    private fun fetchOfferedSchema(url: String) {
+        if (bridge == null) return
+        if (url != offeredUrl) {
+            thisLogger().warn("JSON Canopy: ignoring a request to fetch a schema that was not offered: $url")
+            return
+        }
+        ApplicationManager.getApplication().executeOnPooledThread {
+            val result = RemoteSchemas.fetch(url)
+            if (result is SchemaResolution.Found) {
+                downloaded = result
+                downloadedFrom = url
+            }
+            if (!disposed) bridge.sendSetSchema(result.toPayload())
+        }
     }
 
     private fun loadFromDiskFallback(): String = try {
@@ -218,6 +282,7 @@ class CanopyFileEditor(
         // it was registered via the Disposable-scoped overload above, which
         // tears it down automatically -- calling both would risk a
         // double-removal issue rather than prevent a leak.
+        disposed = true
         bridge?.dispose()
         browser?.dispose()
         pageFile?.let { runCatching { Files.deleteIfExists(it) } }

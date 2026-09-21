@@ -30,6 +30,7 @@ class CanopyBridge(private val browser: JBCefBrowser) : Disposable {
 
     private var onReady: (() -> Unit)? = null
     private var onDocumentChanged: ((String) -> Unit)? = null
+    private var onFetchSchema: ((String) -> Unit)? = null
 
     init {
         query.addHandler { request ->
@@ -44,6 +45,10 @@ class CanopyBridge(private val browser: JBCefBrowser) : Disposable {
 
     fun addDocumentChangedHandler(handler: (String) -> Unit) {
         onDocumentChanged = handler
+    }
+
+    fun addFetchSchemaHandler(handler: (String) -> Unit) {
+        onFetchSchema = handler
     }
 
     /**
@@ -64,6 +69,10 @@ class CanopyBridge(private val browser: JBCefBrowser) : Disposable {
 
     fun sendExternalReload(text: String) {
         send(OutgoingType.EXTERNAL_RELOAD, ExternalReloadPayload(text))
+    }
+
+    fun sendSetSchema(payload: SetSchemaPayload) {
+        send(OutgoingType.SET_SCHEMA, payload)
     }
 
     private fun send(type: String, payload: Any) {
@@ -92,6 +101,10 @@ class CanopyBridge(private val browser: JBCefBrowser) : Disposable {
             IncomingType.DOCUMENT_CHANGED -> {
                 val text = obj.getAsJsonObject("payload")?.get("text")?.asString
                 if (text != null) onDocumentChanged?.invoke(text)
+            }
+            IncomingType.FETCH_SCHEMA -> {
+                val url = obj.getAsJsonObject("payload")?.get("url")?.asString
+                if (url != null) onFetchSchema?.invoke(url)
             }
             else -> thisLogger().warn("JSON Canopy bridge: unhandled message type in $request")
         }

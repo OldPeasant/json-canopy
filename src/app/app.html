@@ -29,6 +29,9 @@
       <span class="schema-label">Schema</span>
       @if (schema.model()) {
         <span class="schema-name" [title]="schema.name()">{{ schema.name() }}</span>
+        @if (schema.origin(); as origin) {
+          <span class="schema-origin" [title]="origin">{{ origin }}</span>
+        }
         @if (schema.problems().length) {
           <button type="button" class="schema-status bad" [attr.aria-expanded]="problemsOpen()" (click)="problemsOpen.set(!problemsOpen())" title="Show or hide the list">
             ⚠ {{ schema.problems().length }} {{ schema.problems().length === 1 ? 'problem' : 'problems' }} {{ problemsOpen() ? '▴' : '▾' }}
@@ -44,7 +47,11 @@
         <button type="button" class="btn" (click)="removeSchema()">Remove</button>
       } @else {
         <span class="schema-name none">none</span>
-        @if (schemaRef(); as ref) {
+        @if (consentUrl(); as url) {
+          <span class="schema-hint" [title]="url">This file points to “{{ url }}”. Fetch it from the network?</span>
+          <button type="button" class="btn" [disabled]="fetching()" (click)="fetchSchema(url)">{{ fetching() ? 'Fetching…' : 'Fetch schema' }}</button>
+          <button type="button" class="btn" [disabled]="fetching()" (click)="declineSchema(url)">Not now</button>
+        } @else if (!hostBridge.isHostMode() && schemaRef(); as ref) {
           <span class="schema-hint" [title]="ref">This file points to “{{ ref }}” — choose that file to use it.</span>
         }
         <span class="schema-spacer"></span>

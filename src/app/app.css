@@ -307,3 +307,12 @@ button.schema-status:hover {
   background: var(--accent-bg);
   color: var(--accent);
 }
+
+.schema-origin {
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

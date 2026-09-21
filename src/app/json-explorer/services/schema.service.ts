@@ -13,12 +13,15 @@ const NO_SET: ReadonlySet<string> = new Set();
 export class SchemaService {
   private readonly _model = signal<SchemaModel | undefined>(undefined);
   private readonly _name = signal<string | undefined>(undefined);
+  private readonly _origin = signal<string | undefined>(undefined);
   private readonly _error = signal<string | null>(null);
   private readonly data = signal<unknown>(undefined);
 
   readonly model = this._model.asReadonly();
   // Display name: the schema's title if it has one, else where it came from.
   readonly name = this._name.asReadonly();
+  // Where the schema came from, in words: 'chosen file', 'IDE settings', a URL.
+  readonly origin = this._origin.asReadonly();
   // Why the last attempt to load a schema failed, if it did.
   readonly error = this._error.asReadonly();
 
@@ -175,7 +178,7 @@ export class SchemaService {
     this.data.set(data);
   }
 
-  load(text: string, source: string): boolean {
+  load(text: string, source: string, origin?: string): boolean {
     const result = loadSchema(text);
     if ('error' in result) {
       this._error.set(result.error);
@@ -184,13 +187,20 @@ export class SchemaService {
     const title = result.model.root.title;
     this._model.set(result.model);
     this._name.set(typeof title === 'string' && title ? title : source);
+    this._origin.set(origin);
     this._error.set(null);
     return true;
+  }
+
+  // A failure to obtain a schema (a download that did not work, a missing file).
+  fail(message: string): void {
+    this._error.set(message);
   }
 
   clear(): void {
     this._model.set(undefined);
     this._name.set(undefined);
+    this._origin.set(undefined);
     this._error.set(null);
   }
 }

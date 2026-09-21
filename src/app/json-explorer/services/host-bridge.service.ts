@@ -15,6 +15,22 @@ export interface LoadDocumentPayload {
   readOnly: boolean;
 }
 
+// Kotlin -> JS, sent after LOAD_DOCUMENT and whenever the file changes
+// outside this editor: what the IDE found out about the document's schema.
+//   found        `text` is the schema; `name` and `source` say which and why
+//   needsConsent the file's $schema is a remote URL the IDE does not have;
+//                the page asks the user and answers with fetchSchema(url)
+//   none         no schema applies
+//   failed       a schema applies but could not be read; `message` says why
+export interface SetSchemaPayload {
+  status: 'found' | 'needsConsent' | 'none' | 'failed';
+  name?: string;
+  source?: string;
+  text?: string;
+  url?: string;
+  message?: string;
+}
+
 declare global {
   interface Window {
     __JSON_CANOPY_HOST__?: boolean;
@@ -33,6 +49,7 @@ export class HostBridgeService {
 
   private loadDocumentHandler: ((payload: LoadDocumentPayload) => void) | null = null;
   private externalReloadHandler: ((text: string) => void) | null = null;
+  private setSchemaHandler: ((payload: SetSchemaPayload) => void) | null = null;
 
   constructor() {
     if (!this.isHostMode()) return;
@@ -45,6 +62,16 @@ export class HostBridgeService {
 
   onExternalReload(handler: (text: string) => void): void {
     this.externalReloadHandler = handler;
+  }
+
+  onSetSchema(handler: (payload: SetSchemaPayload) => void): void {
+    this.setSchemaHandler = handler;
+  }
+
+  // The user agreed to download a remote schema; the host fetches it (with
+  // the IDE's proxy settings) and answers with SET_SCHEMA.
+  fetchSchema(url: string): void {
+    this.send('FETCH_SCHEMA', { url });
   }
 
   // Tells the host we're ready to receive LOAD_DOCUMENT — sent only after
@@ -79,6 +106,9 @@ export class HostBridgeService {
         break;
       case 'EXTERNAL_RELOAD':
         this.externalReloadHandler?.((message.payload as { text: string }).text);
+        break;
+      case 'SET_SCHEMA':
+        this.setSchemaHandler?.(message.payload as SetSchemaPayload);
         break;
     }
   }

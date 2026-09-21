@@ -77,11 +77,46 @@ Sample document: [`samples/canopy-demo.json`](samples/canopy-demo.json).
 
 Edit mode: a type dropdown per value, `×` / `+` to remove or add keys and items.
 
+## Schemas
+
+Load a JSON Schema ("Choose schema…" on the schema bar) and the editor
+uses it: problems are marked on the nodes and listed in the bar (click one
+to jump to it), enums become dropdowns, the type dropdown offers only what
+fits, absent optional keys are offered as ghost chips and columns, and
+`readOnly`, `deprecated` and the description/constraints (the `ⓘ`) are
+shown. Nothing is ever blocked: the schema advises, you decide.
+
+A **Tables | Form** toggle switches between two renderings of the same
+document. The form shows objects as labelled fields in schema order, and
+oneOf/anyOf with a discriminator as a variant picker that asks before it
+removes anything. Documents that are essentially lists of records open as
+tables, everything else as a form, until you choose.
+
+Supported: `type`, `properties`, `required`, `enum`/`const`, `items`,
+`$ref`/`$defs`, `additionalProperties`, `patternProperties`, `oneOf`,
+`anyOf`, `allOf`, `default`, `readOnly`, `deprecated` and the usual
+value limits. Validation (Ajv, draft-07 and 2020-12) enforces every
+keyword; the UI models the ones listed. See
+[`docs/schema-plan.md`](docs/schema-plan.md).
+
+A file's `$schema` is used when it points to a file the IDE can read. In
+the **IntelliJ plugin** the schema is found for you: a local `$schema`, else
+whatever the IDE's JSON Schema support applies (your mappings, the
+SchemaStore catalog). A remote `$schema` the IDE does not already have is
+**never fetched without asking**; the schema bar offers it. In the
+standalone app the same prompt fetches with the browser's `fetch`
+(the server must allow CORS); a relative `$schema` cannot be resolved
+there, so choose the file.
+
+Samples with schemas are in [`samples/schemas`](samples/schemas) and
+[`samples/config`](samples/config).
+
 ## Develop
 
 ```bash
 npm install
 npm start
+npm test        # unit tests (Vitest)
 ```
 
 ## Build

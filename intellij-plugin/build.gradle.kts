@@ -22,6 +22,9 @@ dependencies {
         // open platform, not Ultimate-only. Bump this IDE version when JetBrains
         // stops supporting it; keep sinceBuild/untilBuild below in step.
         intellijIdea("2024.3")
+        // Compile against the JSON plugin's schema service (used only when the
+        // plugin is present at runtime: see withJson.xml).
+        bundledPlugin("com.intellij.modules.json")
     }
 }
 

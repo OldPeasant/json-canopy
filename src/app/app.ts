@@ -1,14 +1,14 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { JsonExplorerComponent } from './json-explorer/json-explorer.component';
 import { EditModeService } from './json-explorer/services/edit-mode.service';
-import { HostBridgeService } from './json-explorer/services/host-bridge.service';
+import { HostBridgeService, type SetSchemaPayload } from './json-explorer/services/host-bridge.service';
 import { CollapseService } from './json-explorer/services/collapse.service';
 import { RevealService } from './json-explorer/services/reveal.service';
 import { SchemaService } from './json-explorer/services/schema.service';
 import { JumpService } from './json-explorer/services/jump.service';
 import { LayoutService } from './json-explorer/services/layout.service';
 import type { Layout } from './json-explorer/layout.util';
-import { formatPath, schemaRefOf, type Problem } from './schema';
+import { formatPath, isRemoteSchemaRef, schemaRefOf, type Problem } from './schema';
 
 @Component({
   selector: 'app-root',
@@ -41,6 +41,28 @@ export class App {
   // point at the file to choose. Resolving it is left to the user for now.
   protected readonly schemaRef = computed(() => schemaRefOf(this.data()));
 
+  // A remote schema is never fetched unasked: the bar offers it, the user
+  // decides. `declined` remembers "not now" for this session.
+  protected readonly remoteRef = computed(() => {
+    const ref = this.schemaRef();
+    return ref && isRemoteSchemaRef(ref) ? ref : undefined;
+  });
+  private readonly declined = signal<string[]>([]);
+  protected readonly fetching = signal(false);
+
+  // In the IDE the host resolves schemas and says when one needs asking about.
+  private readonly hostConsentUrl = signal<string | undefined>(undefined);
+  // A schema the user chose by hand is not replaced by what the host finds.
+  private pinned = false;
+  // Whether the loaded schema came from the host, so the host may take it away again.
+  private fromHost = false;
+
+  // The remote schema the file points at that nobody has loaded, if it may be offered.
+  protected readonly consentUrl = computed(() => {
+    const url = this.schema.model() ? undefined : this.hostBridge.isHostMode() ? this.hostConsentUrl() : this.remoteRef();
+    return url && !this.declined().includes(url) ? url : undefined;
+  });
+
   protected readonly problemsOpen = signal(false);
   // A huge document can fail thousands of times over; the list shows the first few.
   protected readonly problemListLimit = 200;
@@ -70,6 +92,7 @@ export class App {
     // behavior for now; not attempting to preserve in-flight UI state
     // (raw-mode draft, edit-mode toggle) across an externally-driven reload.
     this.hostBridge.onExternalReload((text) => this.parse(text, this.fileName()));
+    this.hostBridge.onSetSchema((payload) => this.onHostSchema(payload));
     this.hostBridge.ready();
   }
 
@@ -129,8 +152,8 @@ export class App {
   }
 
   removeSchema(): void {
-    this.schema.clear();
-    this.layout.suggest(this.data(), false);
+    this.pinned = false;
+    this.dropSchema();
   }
 
   jumpTo(problem: Problem): void {
@@ -143,11 +166,69 @@ export class App {
     if (file) {
       const reader = new FileReader();
       reader.onload = () => {
-        if (this.schema.load(reader.result as string, file.name)) this.layout.suggest(this.data(), true);
+        if (this.useSchema(reader.result as string, file.name, 'chosen file')) {
+          this.pinned = true;
+          this.fromHost = false;
+        }
       };
       reader.readAsText(file);
     }
     input.value = '';
+  }
+
+  async fetchSchema(url: string): Promise<void> {
+    this.fetching.set(true);
+    if (this.hostBridge.isHostMode()) {
+      // The IDE downloads it and answers with SET_SCHEMA.
+      this.hostBridge.fetchSchema(url);
+      return;
+    }
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      this.useSchema(await response.text(), url.split('/').pop() || url, `downloaded from ${url}`);
+    } catch (e) {
+      this.schema.fail(`Could not fetch ${url}: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      this.fetching.set(false);
+    }
+  }
+
+  declineSchema(url: string): void {
+    this.declined.update(list => [...list, url]);
+  }
+
+  private useSchema(text: string, name: string, origin: string): boolean {
+    const loaded = this.schema.load(text, name, origin);
+    if (loaded) this.layout.suggest(this.data(), true);
+    return loaded;
+  }
+
+  private onHostSchema(payload: SetSchemaPayload): void {
+    this.fetching.set(false);
+    if (this.pinned) return;
+    switch (payload.status) {
+      case 'found':
+        this.hostConsentUrl.set(undefined);
+        if (payload.text !== undefined) this.fromHost = this.useSchema(payload.text, payload.name ?? 'schema', payload.source ?? 'IDE');
+        break;
+      case 'needsConsent':
+        this.hostConsentUrl.set(payload.url);
+        break;
+      case 'failed':
+        this.schema.fail(payload.message ?? 'The schema could not be loaded.');
+        break;
+      case 'none':
+        this.hostConsentUrl.set(undefined);
+        if (this.fromHost) this.dropSchema();
+        break;
+    }
+  }
+
+  private dropSchema(): void {
+    this.fromHost = false;
+    this.schema.clear();
+    this.layout.suggest(this.data(), false);
   }
 
   onDraftInput(event: Event): void {

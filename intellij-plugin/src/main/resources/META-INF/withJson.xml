@@ -1,0 +1,13 @@
+<!-- Loaded only when the bundled JSON plugin is present (the optional
+     com.intellij.modules.json dependency in plugin.xml). It registers the
+     lookup that asks the IDE's own JSON Schema support which schema
+     applies to a file: user mappings, the SchemaStore catalog, a file's
+     $schema. Without the JSON plugin nothing is registered, and the
+     plugin resolves only a `$schema` written in the file itself. -->
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationService
+            serviceInterface="ch.sonensei.canopy.schema.IdeSchemaLookup"
+            serviceImplementation="ch.sonensei.canopy.schema.JsonPluginSchemaLookup"/>
+    </extensions>
+</idea-plugin>

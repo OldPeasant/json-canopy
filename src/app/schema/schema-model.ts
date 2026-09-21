@@ -330,7 +330,8 @@ export class SchemaModel {
   /** Validates `data` against the schema. Never throws for bad data. */
   validate(data: unknown): Problem[] {
     this.validator ??= createValidator(this.root);
-    return this.refineAlternatives(this.validator.check(data), data, 0);
+    const problems = this.refineAlternatives(this.validator.check(data), data, 0);
+    return problems.filter((p) => !isSchemaPointer(p));
   }
 
   /**
@@ -535,6 +536,12 @@ function isObject(v: unknown): v is Record<string, unknown> {
 
 function deepEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+// A document names its schema in a top-level `$schema`. Editors do not count
+// that against a closed schema, and neither should we.
+function isSchemaPointer(p: Problem): boolean {
+  return p.path.length === 1 && p.path[0] === '$schema' && (p.keyword === 'additionalProperties' || p.keyword === 'unevaluatedProperties');
 }
 
 function startsWith(path: Path, prefix: Path): boolean {

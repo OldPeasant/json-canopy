@@ -130,12 +130,25 @@ schema mapping and validation must stay fast on it.
 4. **Plugin integration.** Schema from IDE mappings and `$schema`
    resolution against the file path, remote-URL consent, bridge messages.
 
+## Verification of phase 4
+
+Kotlin side: compiles against IntelliJ 2024.3 (with the JSON plugin's real
+classes), `buildPlugin` and `verifyPluginStructure` pass, and the pure
+logic (`$schema` parsing, ref classification, the exact JSON sent to the
+page) was checked with a throwaway program. Web side: driven with a
+simulated host that speaks the same wire format. What has **not** been run
+is the plugin inside a real IDE, so the JCEF round-trip, the JSON plugin
+lookup and the download through `HttpRequests` are untested end to end.
+The project has no Kotlin test setup (JUnit is not in the offline cache).
+
 ## Open questions
 
 - Per-file or per-schema persistence of the layout choice, and where it is
   stored (webview storage versus IDE settings in the plugin).
 - Semantic checks beyond the schema (for example `needs` and `reports`
   refer to existing ids). Out of scope for now; revisit after phase 3.
+- Consent: once per download today. A per-host "always allow" (e.g. for
+  json.schemastore.org) would spare repeat prompts across files.
 - Whether schemas may later carry layout hints, which would need an
   extension keyword. Deferred until standard keywords prove insufficient.
 
@@ -162,4 +175,10 @@ schema mapping and validation must stay fast on it.
   - [x] Closest-variant error messages
   - [x] Type toggle for non-discriminated alternatives (the restricted type dropdown)
   - [ ] Variant picker for tables (rows) — the table has no place to ask before removing keys
-- [ ] Phase 4: plugin integration
+- [~] Phase 4: plugin integration
+  - [x] Wire contract: `SET_SCHEMA` (found / needsConsent / none / failed) and `FETCH_SCHEMA`
+  - [x] Web side: consent prompt, pinned manual choice, origin on the bar; verified against a simulated host
+  - [x] Standalone app: the same prompt, fetching with the browser's `fetch`
+  - [x] Plugin: local `$schema` (relative, absolute, `file:`), the IDE's JSON Schema support (optional dependency on the JSON plugin), download after consent; compiles against the 2024.3 platform, plugin builds and passes the structure check
+  - [ ] Verified in a running IDE (`./gradlew runIde`): not done, see "Verification" below
+  - [ ] Re-resolve when the schema file itself changes; remember consent per host
