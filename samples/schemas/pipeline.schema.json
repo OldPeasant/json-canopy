@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canopy.example/schemas/pipeline.schema.json",
+  "title": "Build pipeline",
+  "description": "A CI pipeline: named jobs that run steps and can depend on each other.",
+  "type": "object",
+  "required": ["name", "on", "jobs"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string" },
+    "on": {
+      "description": "Triggers. Either a list of event names or a map of event to options.",
+      "oneOf": [
+        { "type": "array", "items": { "enum": ["push", "pull_request", "schedule", "manual"] }, "uniqueItems": true, "minItems": 1 },
+        {
+          "type": "object",
+          "properties": {
+            "push": { "type": "object", "properties": { "branches": { "type": "array", "items": { "type": "string" } } } },
+            "schedule": { "type": "object", "required": ["cron"], "properties": { "cron": { "type": "string", "examples": ["0 3 * * *"] } } }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "env": { "type": "object", "additionalProperties": { "type": "string" }, "description": "Environment variables for every job." },
+    "jobs": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "Keyed by job id.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/job" }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "job": {
+      "type": "object",
+      "required": ["runsOn", "steps"],
+      "properties": {
+        "runsOn": { "enum": ["linux", "macos", "windows"] },
+        "needs": { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "description": "Ids of jobs that must finish first." },
+        "timeoutMinutes": { "type": "integer", "minimum": 1, "maximum": 360, "default": 30 },
+        "continueOnError": { "type": "boolean", "default": false },
+        "env": { "type": "object", "additionalProperties": { "type": "string" } },
+        "steps": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/step" } }
+      },
+      "additionalProperties": false
+    },
+    "step": {
+      "description": "Either runs a shell command or uses a reusable action.",
+      "oneOf": [
+        {
+          "title": "Run command",
+          "type": "object",
+          "required": ["run"],
+          "properties": {
+            "name": { "type": "string" },
+            "run": { "type": "string" },
+            "shell": { "enum": ["bash", "sh", "powershell"], "default": "bash" },
+            "workingDirectory": { "type": "string" }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "Use action",
+          "type": "object",
+          "required": ["uses"],
+          "properties": {
+            "name": { "type": "string" },
+            "uses": { "type": "string", "pattern": "^[a-z0-9-]+/[a-z0-9-]+@.+$", "examples": ["checkout/checkout@v4"] },
+            "with": { "type": "object", "additionalProperties": { "type": ["string", "number", "boolean"] } }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

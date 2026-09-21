@@ -1,0 +1,30 @@
+{
+  "$schema": "../schemas/app-config.schema.json",
+  "name": "billing-api",
+  "environment": "staging",
+  "server": {
+    "port": 8443,
+    "timeoutMs": 15000,
+    "cors": { "origins": ["https://app.example.com"], "credentials": true },
+    "tls": { "certFile": "/etc/certs/server.pem", "keyFile": "/etc/certs/server.key" }
+  },
+  "database": {
+    "driver": "postgres",
+    "host": "db.internal",
+    "name": "billing",
+    "user": "billing",
+    "passwordEnv": "DB_PASSWORD",
+    "pool": { "min": 2, "max": 20 }
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "loggers": { "billing.invoices": "debug", "http.client": "warn" }
+  },
+  "features": {
+    "newCheckout": { "enabled": true, "rolloutPercent": 25 },
+    "darkMode": true,
+    "betaExport": false
+  },
+  "cache": { "enabled": true, "ttlSeconds": 120 }
+}

@@ -5,7 +5,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build && node scripts/inline-single-file.mjs"
+    "build": "ng build && node scripts/inline-single-file.mjs",
+    "test": "vitest run"
   },
   "private": true,
   "packageManager": "npm@10.9.8",
@@ -14,6 +15,8 @@
     "@angular/compiler": "^22.1.0",
     "@angular/core": "^22.1.0",
     "@angular/platform-browser": "^22.1.0",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
   },
@@ -22,6 +25,7 @@
     "@angular/cli": "^22.1.8",
     "@angular/compiler-cli": "^22.1.0",
     "prettier": "^3.8.1",
-    "typescript": "~6.0.2"
+    "typescript": "~6.0.2",
+    "vitest": "^5.0.1"
   }
 }

@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/pipeline.schema.json",
+  "name": "CI",
+  "on": { "push": { "branches": ["main"] }, "schedule": { "cron": "0 3 * * *" } },
+  "env": { "CI": "true", "NODE_ENV": "test" },
+  "jobs": {
+    "build": {
+      "runsOn": "linux",
+      "steps": [
+        { "uses": "checkout/checkout@v4" },
+        { "name": "Install", "run": "npm ci" },
+        { "name": "Build", "run": "npm run build" }
+      ]
+    },
+    "test": {
+      "runsOn": "linux",
+      "needs": ["build"],
+      "timeoutMinutes": 15,
+      "steps": [
+        { "uses": "checkout/checkout@v4", "with": { "fetchDepth": 0 } },
+        { "name": "Unit tests", "run": "npm test", "shell": "bash" }
+      ]
+    },
+    "package": {
+      "runsOn": "macos",
+      "needs": ["build", "test"],
+      "continueOnError": true,
+      "steps": [{ "name": "Pack", "run": "npm pack" }]
+    }
+  }
+}

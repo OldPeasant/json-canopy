@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canopy.example/schemas/team.schema.json",
+  "title": "Team",
+  "description": "A team and its members.",
+  "type": "object",
+  "required": ["team", "members"],
+  "properties": {
+    "team": { "type": "string", "title": "Team name", "minLength": 1 },
+    "founded": { "type": "integer", "title": "Year founded", "minimum": 1900, "maximum": 2100 },
+    "active": { "type": "boolean", "default": true },
+    "members": {
+      "type": "array",
+      "title": "Members",
+      "items": { "$ref": "#/$defs/member" },
+      "uniqueItems": true
+    },
+    "metadata": { "$ref": "#/$defs/metadata" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "member": {
+      "title": "Member",
+      "type": "object",
+      "required": ["id", "name", "role"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1, "readOnly": true, "description": "Unique, never reused." },
+        "name": { "type": "string", "minLength": 1 },
+        "role": {
+          "type": "string",
+          "enum": ["engineer", "researcher", "lead", "founder"],
+          "description": "Drives reporting lines and permissions."
+        },
+        "active": { "type": "boolean", "default": true },
+        "skills": { "type": "array", "items": { "type": "string" }, "uniqueItems": true, "default": [] },
+        "contact": {
+          "title": "Contact",
+          "description": "null means the person has asked not to be contacted.",
+          "oneOf": [{ "type": "null" }, { "$ref": "#/$defs/contact" }]
+        },
+        "certifications": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" },
+        "reports": {
+          "type": "array",
+          "items": { "type": "integer" },
+          "description": "Ids of members reporting to this one."
+        },
+        "patents": { "type": "integer", "minimum": 0 },
+        "awards": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "contact": {
+      "type": "object",
+      "required": ["email"],
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "slack": { "type": "string", "pattern": "^@[a-z0-9._-]+$" },
+        "phone": { "type": "string", "pattern": "^[0-9+ -]{6,}$" },
+        "website": { "type": "string", "format": "uri" }
+      },
+      "additionalProperties": false
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "lastUpdated": { "type": "string", "format": "date" },
+        "tags": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+        "stats": {
+          "type": "object",
+          "readOnly": true,
+          "description": "Derived; recomputed on save.",
+          "properties": {
+            "totalMembers": { "type": "integer" },
+            "activeCount": { "type": "integer" }
+          }
+        }
+      }
+    }
+  }
+}

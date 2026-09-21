@@ -1,0 +1,9 @@
+{
+  "team": "Nightwatch",
+  "founded": 1850,
+  "members": [
+    { "id": 1, "name": "Ada Lovelace", "role": "wizard", "contact": { "email": "not-an-email", "fax": "123" } },
+    { "id": 2, "name": "", "role": "engineer", "contact": null, "hobby": "chess" },
+    { "id": 3, "role": "lead" }
+  ]
+}

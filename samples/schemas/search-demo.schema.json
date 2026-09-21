@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canopy.example/schemas/search-demo.schema.json",
+  "title": "Company",
+  "type": "object",
+  "required": ["company", "offices"],
+  "properties": {
+    "company": { "type": "string" },
+    "offices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["city", "country"],
+        "properties": {
+          "city": { "type": "string" },
+          "country": { "type": "string" },
+          "address": {
+            "type": "object",
+            "properties": {
+              "street": { "type": "string" },
+              "zip": { "type": "string", "pattern": "^[0-9]{4}$" }
+            },
+            "additionalProperties": false
+          },
+          "notes": { "type": "string" },
+          "staff": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "role"],
+              "properties": {
+                "name": { "type": "string" },
+                "role": { "enum": ["Engineer", "Designer", "Sales", "Support"] },
+                "email": { "type": "string", "format": "email" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "products": {
+      "type": "object",
+      "title": "Products",
+      "description": "A keyed map: the keys are product slugs and are chosen by the user.",
+      "propertyNames": { "pattern": "^[a-z][a-z0-9-]*$" },
+      "additionalProperties": { "$ref": "#/$defs/product" }
+    },
+    "settings": {
+      "type": "object",
+      "properties": {
+        "currency": { "enum": ["CHF", "EUR", "USD"], "default": "CHF" },
+        "language": { "enum": ["en", "de", "fr", "it"], "default": "en" },
+        "notifications": {
+          "type": "object",
+          "properties": { "email": { "type": "boolean" }, "sms": { "type": "boolean" } }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "product": {
+      "type": "object",
+      "required": ["name", "price"],
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number", "minimum": 0, "description": "In the currency from settings." },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "description": { "type": "string", "maxLength": 200 },
+        "supplier": {
+          "type": "object",
+          "properties": { "name": { "type": "string" }, "country": { "type": "string" } }
+        }
+      }
+    }
+  }
+}

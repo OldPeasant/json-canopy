@@ -1,9 +1,10 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, effect, inject, signal } from '@angular/core';
 import { JsonExplorerComponent } from './json-explorer/json-explorer.component';
 import { EditModeService } from './json-explorer/services/edit-mode.service';
 import { HostBridgeService } from './json-explorer/services/host-bridge.service';
 import { CollapseService } from './json-explorer/services/collapse.service';
 import { RevealService } from './json-explorer/services/reveal.service';
+import { SchemaService } from './json-explorer/services/schema.service';
 
 @Component({
   selector: 'app-root',
@@ -16,6 +17,7 @@ export class App {
   private reveal = inject(RevealService);
   private collapse = inject(CollapseService);
   protected hostBridge = inject(HostBridgeService);
+  protected schema = inject(SchemaService);
 
   protected readonly data = signal<unknown>(undefined);
   protected readonly fileName = signal<string | null>(null);
@@ -35,6 +37,7 @@ export class App {
   private notifyHostTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
+    effect(() => this.schema.setData(this.data()));
     if (!this.hostBridge.isHostMode()) return;
     this.hostBridge.onLoadDocument((payload) => {
       // Set before parse() so the very first render already reflects it —

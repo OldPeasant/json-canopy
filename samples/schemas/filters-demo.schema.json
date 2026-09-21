@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canopy.example/schemas/filters-demo.schema.json",
+  "title": "Project board",
+  "description": "A project with a mixed list of work items. The 'type' field decides which other fields exist.",
+  "type": "object",
+  "required": ["project", "items"],
+  "properties": {
+    "project": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "owner": { "$ref": "#/$defs/person" }
+      }
+    },
+    "items": {
+      "type": "array",
+      "title": "Work items",
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/todo" },
+          { "$ref": "#/$defs/bug" },
+          { "$ref": "#/$defs/note" },
+          { "$ref": "#/$defs/event" }
+        ]
+      }
+    },
+    "archive": {
+      "type": "object",
+      "description": "Kept for reference only.",
+      "deprecated": true,
+      "properties": {
+        "note": { "type": "string" },
+        "previousOwner": { "$ref": "#/$defs/person" }
+      }
+    }
+  },
+  "$defs": {
+    "person": {
+      "type": "object",
+      "required": ["name"],
+      "properties": { "name": { "type": "string" }, "role": { "type": "string" } }
+    },
+    "itemBase": {
+      "type": "object",
+      "required": ["id", "type", "title", "status"],
+      "properties": {
+        "id": { "type": "integer", "readOnly": true },
+        "title": { "type": "string", "minLength": 1 },
+        "description": { "type": "string" }
+      }
+    },
+    "todo": {
+      "title": "To-do",
+      "allOf": [{ "$ref": "#/$defs/itemBase" }],
+      "properties": {
+        "type": { "const": "todo" },
+        "status": { "enum": ["todo", "in-progress", "done"] },
+        "assignee": { "type": "string" }
+      },
+      "unevaluatedProperties": false
+    },
+    "bug": {
+      "title": "Bug",
+      "allOf": [{ "$ref": "#/$defs/itemBase" }],
+      "required": ["assignee"],
+      "properties": {
+        "type": { "const": "bug" },
+        "status": { "enum": ["open", "fixed", "wontfix"] },
+        "assignee": { "type": "string" }
+      },
+      "unevaluatedProperties": false
+    },
+    "note": {
+      "title": "Note",
+      "allOf": [{ "$ref": "#/$defs/itemBase" }],
+      "properties": {
+        "type": { "const": "note" },
+        "status": { "const": "n/a" },
+        "notes": { "type": "string" }
+      },
+      "unevaluatedProperties": false
+    },
+    "event": {
+      "title": "Event",
+      "allOf": [{ "$ref": "#/$defs/itemBase" }],
+      "required": ["date"],
+      "properties": {
+        "type": { "const": "event" },
+        "status": { "enum": ["scheduled", "held", "cancelled"] },
+        "date": { "type": "string", "format": "date" }
+      },
+      "unevaluatedProperties": false
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "$schema": "../schemas/app-config.schema.json",
+  "environment": "prod",
+  "server": { "port": 70000, "tls": { "certFile": "/etc/certs/server.pem" } },
+  "database": { "driver": "postgres", "file": "./data/app.db" },
+  "logging": { "level": "verbose", "loggers": { "http.client": "loud" } },
+  "features": { "Dark_Mode": true, "newCheckout": { "rolloutPercent": 140 } },
+  "cacheTtl": 60,
+  "cache": { "enabled": true },
+  "unknownSection": {}
+}

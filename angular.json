@@ -27,6 +27,11 @@
             ],
             "styles": [
               "src/styles.css"
+            ],
+            "allowedCommonJsDependencies": [
+              "ajv",
+              "ajv/dist/2020",
+              "ajv-formats"
             ]
           },
           "configurations": {

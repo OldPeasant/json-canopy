@@ -1,0 +1,15 @@
+{
+  "name": "Broken",
+  "on": ["push", "push", "deploy"],
+  "jobs": {
+    "Build": { "runsOn": "amiga", "steps": [] },
+    "test": {
+      "runsOn": "linux",
+      "timeoutMinutes": 999,
+      "steps": [
+        { "name": "both", "run": "npm test", "uses": "checkout/checkout@v4" },
+        { "uses": "not-an-action" }
+      ]
+    }
+  }
+}

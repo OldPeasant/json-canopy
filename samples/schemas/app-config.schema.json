@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://canopy.example/schemas/app-config.schema.json",
+  "title": "Application config",
+  "description": "Runtime configuration of a small web service.",
+  "type": "object",
+  "required": ["server", "database"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "name": { "type": "string", "default": "my-service", "examples": ["billing-api"] },
+    "environment": { "enum": ["development", "staging", "production"], "default": "development" },
+    "server": {
+      "type": "object",
+      "required": ["port"],
+      "properties": {
+        "host": { "type": "string", "default": "0.0.0.0", "format": "hostname" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535, "default": 8080 },
+        "timeoutMs": { "type": "integer", "minimum": 0, "default": 30000, "description": "0 disables the timeout." },
+        "cors": {
+          "type": "object",
+          "properties": {
+            "origins": { "type": "array", "items": { "type": "string", "format": "uri" } },
+            "credentials": { "type": "boolean", "default": false }
+          }
+        },
+        "tls": {
+          "type": "object",
+          "required": ["certFile", "keyFile"],
+          "properties": {
+            "certFile": { "type": "string" },
+            "keyFile": { "type": "string" }
+          },
+          "description": "Omit the whole block to serve plain HTTP."
+        }
+      }
+    },
+    "database": {
+      "title": "Database",
+      "description": "Which fields apply depends on 'driver'.",
+      "oneOf": [
+        {
+          "title": "SQLite",
+          "type": "object",
+          "required": ["driver", "file"],
+          "properties": {
+            "driver": { "const": "sqlite" },
+            "file": { "type": "string", "examples": ["./data/app.db"] }
+          },
+          "additionalProperties": false
+        },
+        {
+          "title": "PostgreSQL",
+          "type": "object",
+          "required": ["driver", "host", "name"],
+          "properties": {
+            "driver": { "const": "postgres" },
+            "host": { "type": "string" },
+            "port": { "type": "integer", "default": 5432 },
+            "name": { "type": "string" },
+            "user": { "type": "string" },
+            "password": { "type": "string", "writeOnly": true, "description": "Prefer passwordEnv." },
+            "passwordEnv": { "type": "string", "pattern": "^[A-Z_][A-Z0-9_]*$", "description": "Name of an environment variable." },
+            "pool": { "$ref": "#/$defs/pool" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "logging": {
+      "type": "object",
+      "properties": {
+        "level": { "$ref": "#/$defs/logLevel" },
+        "format": { "enum": ["text", "json"], "default": "text" },
+        "file": { "type": "string" },
+        "loggers": {
+          "type": "object",
+          "description": "Per-package overrides, keyed by package name.",
+          "additionalProperties": { "$ref": "#/$defs/logLevel" }
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "Feature flags, keyed by flag name.",
+      "patternProperties": {
+        "^[a-z][a-zA-Z0-9]*$": {
+          "oneOf": [
+            { "type": "boolean" },
+            {
+              "type": "object",
+              "properties": {
+                "enabled": { "type": "boolean" },
+                "rolloutPercent": { "type": "integer", "minimum": 0, "maximum": 100 }
+              },
+              "required": ["enabled"]
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "cacheTtl": { "type": "integer", "deprecated": true, "description": "Use cache.ttlSeconds." },
+    "cache": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "ttlSeconds": { "type": "integer", "minimum": 1, "default": 300 }
+      },
+      "if": { "properties": { "enabled": { "const": true } }, "required": ["enabled"] },
+      "then": { "required": ["ttlSeconds"] }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "logLevel": { "enum": ["trace", "debug", "info", "warn", "error"], "default": "info" },
+    "pool": {
+      "type": "object",
+      "properties": {
+        "min": { "type": "integer", "minimum": 0, "default": 2 },
+        "max": { "type": "integer", "minimum": 1, "default": 10 }
+      }
+    }
+  }
+}
