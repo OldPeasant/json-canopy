@@ -1,0 +1,248 @@
+/* Host contributes no layout box — behaves like the rendered content itself. */
+:host {
+  display: contents;
+}
+
+.fields {
+  display: flex;
+  flex-direction: column;
+}
+
+/* A scalar field: label on the left, control on the right. */
+.field {
+  display: grid;
+  grid-template-columns: minmax(9rem, 15rem) 1fr;
+  align-items: start;
+  gap: 0.25rem 1rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.field:last-child {
+  border-bottom: none;
+}
+
+/* A group or a table: label above, content below. */
+.field.block {
+  grid-template-columns: 1fr;
+}
+
+.label {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.field.block > .label .name {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.req {
+  color: var(--danger);
+}
+
+.field.deprecated .name {
+  text-decoration: line-through;
+  text-decoration-color: var(--danger);
+  color: var(--text-faint);
+}
+
+.control {
+  min-width: 0;
+}
+
+/* Nested object: indented under its label with a rail. */
+.group {
+  margin: 0.25rem 0 0.25rem 0.4rem;
+  padding-left: 1rem;
+  border-left: 1px solid var(--border-strong);
+}
+
+/* A declared key the data lacks: shown dim, with what leaving it out means. */
+.field.ghost .label {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.ghost-hint {
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
+.ghost-add,
+.fold {
+  background: none;
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.ghost-add {
+  margin-left: 0.5rem;
+  padding: 0 0.5rem;
+}
+
+.fold {
+  padding: 0 0.3rem;
+  border-style: solid;
+}
+
+.ghost-add:hover,
+.fold:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.collapsed-chip {
+  padding: 1px 8px;
+  background: var(--bg-elevated);
+  color: var(--val-null);
+  border: 1px dashed var(--border-strong);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.collapsed-chip:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.collapsed-chip.has-problems {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.problem-badge {
+  color: var(--danger);
+  font-size: 0.8125rem;
+  cursor: help;
+}
+
+.empty {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--val-null);
+}
+
+.del-btn {
+  padding: 0 0.3rem;
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.del-btn:hover {
+  color: var(--danger);
+}
+
+.add-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 0.4rem;
+}
+
+.add-input {
+  width: 9rem;
+  padding: 2px 5px;
+  background: var(--bg-input);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.add-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.add-btn {
+  padding: 0 0.5rem;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* Variant picker: which shape this object has. */
+.variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 0.25rem 0 0.4rem;
+}
+
+.variant {
+  padding: 2px 10px;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.variant:disabled {
+  cursor: default;
+}
+
+.variant:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.variant.is-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-color: var(--border-strong);
+}
+
+.variant-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 4px;
+  color: var(--danger-text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+}
+
+.variant-confirm code {
+  color: var(--text);
+}
+
+.confirm-btn {
+  padding: 1px 10px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border: 1px solid var(--border-strong);
+  border-radius: 3px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  cursor: pointer;
+}

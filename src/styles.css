@@ -188,3 +188,18 @@ app-root {
   box-shadow: 0 0 6px var(--accent);
   border-radius: 6px;
 }
+
+/* Where a jump from the problem list landed. */
+.jump-flash {
+  animation: jump-flash 1.6s ease-out;
+}
+
+@keyframes jump-flash {
+  0% {
+    box-shadow: 0 0 0 2px var(--danger), 0 0 14px var(--danger);
+    background: var(--danger-bg);
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}

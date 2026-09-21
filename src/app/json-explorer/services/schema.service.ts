@@ -1,7 +1,8 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { ProblemIndex, SchemaModel, loadSchema, parsePathKey, type GhostKey, type JsonSchema, type JsonType, type NodeMeta, type Primitive } from '../../schema';
+import { ProblemIndex, SchemaModel, loadSchema, parsePathKey, type GhostKey, type JsonSchema, type JsonType, type NodeMeta, type Primitive, type VariantInfo, type VariantSwitch } from '../../schema';
 
 const NONE: readonly never[] = [];
+const NO_SET: ReadonlySet<string> = new Set();
 
 // The schema the current document is checked against, and the problems that
 // result. Purely advisory: nothing here blocks or rewrites an edit — the
@@ -39,12 +40,16 @@ export class SchemaService {
     ghosts: new Map<string, readonly GhostKey[]>(),
     permits: new Map<string, boolean>(),
     meta: new Map<string, NodeMeta | undefined>(),
+    required: new Map<string, ReadonlySet<string>>(),
+    variantIndex: new Map<string, number | undefined>(),
     readOnly: new Map<string, boolean>(),
   }));
   private readonly typeCache = computed(() => ({
     model: this._model(),
     byKey: new Map<string, readonly JsonType[] | undefined>(),
     declared: new Map<string, readonly string[]>(),
+    objectKeys: new Map<string, readonly string[]>(),
+    variants: new Map<string, VariantInfo | undefined>(),
   }));
 
   /** The values the schema allows at this node, if it lists them all — what a dropdown offers. */
@@ -91,6 +96,45 @@ export class SchemaService {
     const id = `${parentKey}\u0000${key}`;
     if (!permits.has(id)) permits.set(id, model.permitsKey(parsePathKey(parentKey), data, key));
     return permits.get(id)!;
+  }
+
+  /** The keys the schema requires of the object at `key`, for the variant the data selects. */
+  requiredFor(key: string): ReadonlySet<string> {
+    const { model, data, required } = this.choiceCache();
+    if (!model || data === undefined) return NO_SET;
+    if (!required.has(key)) required.set(key, model.requiredAt(parsePathKey(key), data));
+    return required.get(key)!;
+  }
+
+  /** The variants the object at `key` can be, when a discriminator tells them apart. */
+  variantsFor(key: string): VariantInfo | undefined {
+    const { model, variants } = this.typeCache();
+    if (!model) return undefined;
+    if (!variants.has(key)) variants.set(key, model.variantsAt(parsePathKey(key)));
+    return variants.get(key);
+  }
+
+  /** Which of those variants the object currently is, if exactly one fits. */
+  variantIndexFor(key: string): number | undefined {
+    const { model, data, variantIndex } = this.choiceCache();
+    if (!model || data === undefined) return undefined;
+    if (!variantIndex.has(key)) variantIndex.set(key, model.variantIndexAt(parsePathKey(key), data));
+    return variantIndex.get(key);
+  }
+
+  /** What choosing the variant with discriminator value `to` would do to the object at `key`. */
+  switchVariantFor(key: string, to: unknown, drop = true): VariantSwitch | undefined {
+    const model = this._model();
+    const data = this.data();
+    return model && data !== undefined ? model.switchVariant(parsePathKey(key), data, to, drop) : undefined;
+  }
+
+  /** Every non-deprecated key the schema declares for the object at `key`, in schema order. */
+  declaredKeys(key: string): readonly string[] {
+    const { model, objectKeys } = this.typeCache();
+    if (!model) return NONE;
+    if (!objectKeys.has(key)) objectKeys.set(key, model.declaredKeysAt(parsePathKey(key)));
+    return objectKeys.get(key)!;
   }
 
   /** Every key the item schema of the array at `arrayKey` declares. Empty when the schema says nothing. */

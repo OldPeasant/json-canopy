@@ -1,0 +1,87 @@
+@if (type === 'object') {
+  @if (rootProblems.length) {
+    <span class="problem-badge" data-problem-key="" [title]="rootProblems[0].message">⚠ {{ rootProblems[0].message }}</span>
+  }
+  @if (variants; as info) {
+    <div class="variants" role="group" aria-label="Variant">
+      @for (v of info.variants; track $index) {
+        <button type="button" class="variant" [class.is-active]="activeVariant === $index" [disabled]="!canEdit" (click)="requestSwitch(v.values[0])">{{ v.label }}</button>
+      }
+    </div>
+    @if (pending; as p) {
+      <div class="variant-confirm" role="alert">
+        <span>Switch to <b>{{ p.label }}</b>?</span>
+        @if (p.sw.dropped.length) {
+          <span>Removes <code>{{ p.sw.dropped.join(', ') }}</code>.</span>
+        }
+        @if (p.sw.reset.length) {
+          <span>Resets <code>{{ p.sw.reset.join(', ') }}</code>.</span>
+        }
+        @if (p.sw.added.length) {
+          <span>Adds <code>{{ p.sw.added.join(', ') }}</code>.</span>
+        }
+        <button type="button" class="confirm-btn" (click)="confirmSwitch()">Switch</button>
+        <button type="button" class="confirm-btn" (click)="cancelSwitch()">Cancel</button>
+      </div>
+    }
+  }
+  <div class="fields">
+    @for (f of fields; track f.key) {
+      @let child = childOf(f.key);
+      @let kind = kindOf(child);
+      <div class="field" [class.ghost]="f.ghost" [class.block]="!f.ghost && kind !== 'scalar'" [class.deprecated]="isDeprecated(f.key)">
+        <div class="label">
+          @if (kind === 'object' && !f.ghost) {
+            <button type="button" class="fold" (click)="toggle(f.key)" [title]="isCollapsed(f.key) ? 'Expand' : 'Collapse'">{{ isCollapsed(f.key) ? '▸' : '▾' }}</button>
+          }
+          <span class="name">{{ f.key }}</span>@if (f.required) {<b class="req" title="Required">*</b>}
+          <app-schema-info [nodeKey]="childUid(f.key)" />
+          @if (!f.ghost && kind !== 'array' && problemsAt(f.key).length) {
+            <span class="problem-badge" [attr.data-problem-key]="childUid(f.key)" [title]="problemTitle(f.key)">⚠</span>
+          }
+          @if (kind === 'object' && !f.ghost && canEdit) {
+            <app-editable-value [value]="child" [uid]="childUid(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
+          }
+          @if (canEdit && !f.ghost) {
+            <button type="button" class="del-btn" (click)="onFieldDelete(f.key)" title="Delete key">&times;</button>
+          }
+        </div>
+        <div class="control">
+          @if (f.ghost; as g) {
+            <span class="ghost-hint">{{ ghostHint(g) }}</span>
+            @if (canEdit) {
+              <button type="button" class="ghost-add" (click)="addGhost(g)" [title]="ghostTitle(g)">⊕ add</button>
+            }
+          } @else if (kind === 'object') {
+            @if (isCollapsed(f.key)) {
+              <button type="button" class="collapsed-chip" [class.has-problems]="problemCount(f.key) > 0" (click)="toggle(f.key)" title="Expand">
+                ▸ &#123; {{ objectSize(child) }} &#125;@if (problemCount(f.key)) { ⚠ {{ problemCount(f.key) }}}
+              </button>
+            } @else {
+              <div class="group">
+                <app-json-form [value]="child" [path]="childPath(f.key)" [uid]="childUid(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
+              </div>
+            }
+          } @else if (kind === 'array') {
+            <app-json-table [value]="child" [path]="childPath(f.key)" [uid]="childUid(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
+          } @else {
+            <app-editable-value [value]="child" [uid]="childUid(f.key)" (valueChange)="onFieldChange(f.key, $event)" />
+          }
+        </div>
+      </div>
+    }
+    @if (!fields.length) {
+      <span class="empty">&#123;&#125;</span>
+    }
+  </div>
+  @if (canEdit) {
+    <span class="add-row">
+      <input #newKey class="add-input" placeholder="key…" (keydown.enter)="addEntry(newKey.value); newKey.value = ''" />
+      <button type="button" class="add-btn" (click)="addEntry(newKey.value); newKey.value = ''" title="Add key">+</button>
+    </span>
+  }
+} @else if (type === 'array') {
+  <app-json-table [value]="value" [path]="path" [uid]="uid" (valueChange)="valueChange.emit($event)" />
+} @else {
+  <app-editable-value [value]="value" [uid]="uid" (valueChange)="valueChange.emit($event)" />
+}

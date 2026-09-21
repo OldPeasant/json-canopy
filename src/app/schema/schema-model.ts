@@ -1,6 +1,6 @@
-import type { Discriminator, GhostKey, JsonSchema, JsonType, NodeMeta, Path, Primitive, Problem } from './schema.types';
+import type { Discriminator, GhostKey, JsonSchema, JsonType, NodeMeta, Path, Primitive, Problem, VariantInfo, VariantSwitch } from './schema.types';
 import { describeConstraints, typeLabel } from './schema-describe';
-import { createValidator } from './schema-validator';
+import { createValidator, type Validator } from './schema-validator';
 
 const ALL_TYPES: JsonType[] = ['string', 'number', 'boolean', 'null', 'object', 'array'];
 
@@ -15,7 +15,7 @@ const ALL_TYPES: JsonType[] = ['string', 'number', 'boolean', 'null', 'object', 
 export class SchemaModel {
   readonly warnings: string[] = [];
   private readonly resolved = new WeakMap<JsonSchema, JsonSchema>();
-  private validator?: (data: unknown) => Problem[];
+  private validator?: Validator;
 
   constructor(readonly root: JsonSchema) {}
 
@@ -133,6 +133,68 @@ export class SchemaModel {
     return false;
   }
 
+  /** The variants the object at `path` can be, told apart by a discriminator, or undefined when it has none. */
+  variantsAt(path: Path): VariantInfo | undefined {
+    const node = this.nodesAt(path).find((n) => this.discriminatorOf(n));
+    const discriminator = node && this.discriminatorOf(node);
+    if (!node || !discriminator) return undefined;
+    const alternatives = (node.oneOf ?? node.anyOf ?? []).map((a) => this.resolve(a));
+    return {
+      property: discriminator.property,
+      variants: alternatives.map((a, i) => ({ label: a.title ?? String(discriminator.values[i][0]), values: discriminator.values[i] })),
+    };
+  }
+
+  /** Which variant the object at `path` currently is, if exactly one fits. */
+  variantIndexAt(path: Path, data: unknown): number | undefined {
+    const node = this.nodesAt(path).find((n) => this.discriminatorOf(n));
+    return node ? this.variantIndex(node, valueAt(data, path)) : undefined;
+  }
+
+  /**
+   * Reshapes the object at `path` for the variant whose discriminator value
+   * is `to`: sets the discriminator, adds the required keys the object lacks,
+   * resets kept keys whose values no longer fit, and — with `drop` — removes
+   * keys the variant does not allow. Undefined if `to` names no variant.
+   */
+  switchVariant(path: Path, data: unknown, to: unknown, drop = true): VariantSwitch | undefined {
+    const info = this.variantsAt(path);
+    const object = valueAt(data, path);
+    if (!info || !isObject(object)) return undefined;
+    const node = this.nodesAt(path).find((n) => this.discriminatorOf(n))!;
+    const chosen = this.variantIndex(node, { [info.property]: to });
+    if (chosen === undefined) return undefined;
+    const { oneOf, anyOf, ...base } = node;
+    const target = this.narrow(merge(base, this.resolve((oneOf ?? anyOf ?? [])[chosen])), undefined);
+
+    const value: Record<string, unknown> = {};
+    const dropped: string[] = [];
+    const reset: string[] = [];
+    for (const [key, current] of Object.entries(object)) {
+      if (key === info.property) {
+        value[key] = to;
+      } else if (drop && !this.permits(target, key)) {
+        dropped.push(key);
+      } else {
+        const declared = target.properties?.[key];
+        const allowed = declared && this.enumerated(declared);
+        const fits = !allowed || allowed.some((a) => deepEqual(a, current));
+        value[key] = fits ? current : this.seed(declared!);
+        if (!fits) reset.push(key);
+      }
+    }
+    value[info.property] = to;
+    const added: string[] = [];
+    for (const key of target.required ?? []) {
+      const declared = target.properties?.[key];
+      if (!(key in value) && declared) {
+        value[key] = this.seed(declared);
+        added.push(key);
+      }
+    }
+    return { value, dropped, reset, added };
+  }
+
   /** Like `ghostKeys`, for the object at `path` in `data`; leaves out deprecated keys, which are not worth offering. */
   ghostKeysAt(path: Path, data: unknown): GhostKey[] {
     const value = valueAt(data, path);
@@ -159,6 +221,11 @@ export class SchemaModel {
     };
     this.nodesAt(path).forEach((n) => collect(n, 0));
     return [...keys];
+  }
+
+  /** The keys the schema requires of the object at `path`, given which variant `data` selects. */
+  requiredAt(path: Path, data?: unknown): Set<string> {
+    return new Set(this.nodesAt(path, data).flatMap((n) => n.required ?? []));
   }
 
   /**
@@ -263,7 +330,55 @@ export class SchemaModel {
   /** Validates `data` against the schema. Never throws for bad data. */
   validate(data: unknown): Problem[] {
     this.validator ??= createValidator(this.root);
-    return this.validator(data);
+    return this.refineAlternatives(this.validator.check(data), data, 0);
+  }
+
+  /**
+   * Ajv reports a failed oneOf/anyOf as one summary plus the errors of every
+   * variant, which reads as noise. Where the value looks like one variant,
+   * report only that variant's errors; where it looks like none, report the
+   * closest variant's and say so.
+   */
+  private refineAlternatives(problems: Problem[], data: unknown, depth: number): Problem[] {
+    const validator = this.validator;
+    if (!validator || depth > 4) return problems;
+    const summaries = problems.filter((p) => p.keyword === 'oneOf' || p.keyword === 'anyOf').sort((a, b) => a.path.length - b.path.length);
+    for (const summary of summaries) {
+      const replacement = this.closestVariantProblems(summary, validator, data);
+      if (!replacement) continue;
+      const kept = problems.filter((p) => !startsWith(p.path, summary.path));
+      return this.refineAlternatives([...kept, ...replacement], data, depth + 1);
+    }
+    return problems;
+  }
+
+  private closestVariantProblems(summary: Problem, validator: Validator, data: unknown): Problem[] | undefined {
+    const node = this.nodesAt(summary.path).find((n) => n.oneOf ?? n.anyOf);
+    if (!node) return undefined;
+    const { oneOf, anyOf, ...base } = node;
+    const alternatives = (oneOf ?? anyOf ?? []).map((a) => this.resolve(a));
+    const value = valueAt(data, summary.path);
+    const under = (relative: Problem[] | undefined) => relative?.map((p) => ({ ...p, path: [...summary.path, ...p.path] }));
+
+    const baseErrors = under(validator.checkAgainst(base, value));
+    if (!baseErrors) return undefined;
+    const chosen = this.variantIndex(node, value);
+    const errors = alternatives.map((a) => under(validator.checkAgainst(a, value)));
+    if (errors.some((e) => !e)) return undefined;
+    const results = errors as Problem[][];
+    const labels = alternatives.map((a, i) => a.title ?? (typeLabel(a, (x) => this.resolve(x)) || `option ${i + 1}`));
+
+    let replacement: Problem[];
+    if (chosen !== undefined) {
+      replacement = [...baseErrors, ...results[chosen]];
+    } else if (results.filter((r) => !r.length).length > 1) {
+      replacement = [...baseErrors, { ...summary, message: `fits more than one option (${labels.join(', ')}); it must fit exactly one` }];
+    } else {
+      const closest = results.reduce((best, r, i) => (r.length < results[best].length ? i : best), 0);
+      replacement = [...baseErrors, { ...summary, message: `fits none of the options (${labels.join(', ')}); closest is ${labels[closest]}` }, ...results[closest]];
+    }
+    // Never turn a failure into silence.
+    return replacement.length ? replacement : undefined;
   }
 
   private resolveIn(schema: JsonSchema, seen: Set<string>): JsonSchema {
@@ -420,6 +535,10 @@ function isObject(v: unknown): v is Record<string, unknown> {
 
 function deepEqual(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function startsWith(path: Path, prefix: Path): boolean {
+  return prefix.length <= path.length && prefix.every((seg, i) => path[i] === seg);
 }
 
 function valueAt(data: unknown, path: Path): unknown {

@@ -274,3 +274,36 @@ button.schema-status:hover {
 .problem-jump:disabled {
   cursor: default;
 }
+
+.layout-toggle {
+  display: flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.layout-toggle button {
+  padding: 0.4rem 0.8rem;
+  background: var(--bg-input);
+  color: var(--text-muted);
+  border: none;
+  border-right: 1px solid var(--border);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: var(--heading-transform);
+  cursor: pointer;
+}
+
+.layout-toggle button:last-child {
+  border-right: none;
+}
+
+.layout-toggle button:hover {
+  color: var(--text);
+}
+
+.layout-toggle button.is-active {
+  background: var(--accent-bg);
+  color: var(--accent);
+}

@@ -440,7 +440,18 @@ export class JsonTableComponent implements OnInit {
 
   // --- object mutation ---
   onEntryChange(key: string, newValue: unknown): void {
-    this.valueChange.emit(withEntry(this.value as Record<string, unknown>, key, newValue));
+    this.valueChange.emit(this.switchedByDiscriminator(this.uid, this.value as Record<string, unknown>, key, newValue)
+      ?? withEntry(this.value as Record<string, unknown>, key, newValue));
+  }
+
+  // Changing the key that tells a schema's variants apart means choosing
+  // another variant, so the object gains what that variant requires. The
+  // table never removes anything by itself (it has nowhere to ask first):
+  // what the new variant does not allow stays, and the schema bar flags it.
+  // The form asks before it drops anything.
+  private switchedByDiscriminator(uid: string, object: Record<string, unknown>, key: string, newValue: unknown): Record<string, unknown> | undefined {
+    if (this.schema.variantsFor(uid)?.property !== key || JSON.stringify(object[key]) === JSON.stringify(newValue)) return undefined;
+    return this.schema.switchVariantFor(uid, newValue, false)?.value;
   }
 
   onEntryDelete(key: string): void {
@@ -472,7 +483,7 @@ export class JsonTableComponent implements OnInit {
   // row's object, leaving every other row untouched ---
   onCellChange(index: number, key: string, newValue: unknown): void {
     const item = this.arr[index] as Record<string, unknown>;
-    this.onItemChange(index, withEntry(item, key, newValue));
+    this.onItemChange(index, this.switchedByDiscriminator(this.itemUid(index), item, key, newValue) ?? withEntry(item, key, newValue));
   }
 
   onCellDelete(index: number, key: string): void {

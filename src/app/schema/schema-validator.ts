@@ -1,21 +1,49 @@
 import Ajv from 'ajv';
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
-import type { ErrorObject } from 'ajv';
+import type { ErrorObject, ValidateFunction } from 'ajv';
 import type { JsonSchema, Path, Problem } from './schema.types';
 
+export interface Validator {
+  /** Validates a whole document against the schema. */
+  check(data: unknown): Problem[];
+  /**
+   * Validates `value` against one sub-schema of it, with the schema's
+   * definitions in reach; paths are relative to `value`. Undefined if the
+   * sub-schema cannot be compiled on its own (for example because it points
+   * into the middle of the root with a `#/properties/...` reference).
+   */
+  checkAgainst(sub: JsonSchema, value: unknown): Problem[] | undefined;
+}
+
 /**
- * Compiles `schema` with Ajv and returns a function that validates data and
- * reports problems as document paths. Draft-07 schemas use Ajv's default
- * draft; everything else is treated as 2020-12. Unmodelled keywords are
- * still enforced here.
+ * Compiles `schema` with Ajv and returns validators that report problems as
+ * document paths. Draft-07 schemas use Ajv's default draft; everything else
+ * is treated as 2020-12. Unmodelled keywords are still enforced here.
  */
-export function createValidator(schema: JsonSchema): (data: unknown) => Problem[] {
+export function createValidator(schema: JsonSchema): Validator {
   const draft07 = typeof schema.$schema === 'string' && schema.$schema.includes('draft-07');
   const ajv = new (draft07 ? Ajv : Ajv2020)({ allErrors: true, strict: false });
   addFormats(ajv);
   const validate = ajv.compile(schema);
-  return (data) => (validate(data) ? [] : (validate.errors ?? []).map((e) => toProblem(e, data)));
+  const subs = new WeakMap<JsonSchema, ValidateFunction | null>();
+  return {
+    check: (data) => (validate(data) ? [] : (validate.errors ?? []).map((e) => toProblem(e, data))),
+    checkAgainst(sub, value) {
+      let fn = subs.get(sub);
+      if (fn === undefined) {
+        try {
+          const { $id, $schema, ...rest } = sub;
+          fn = ajv.compile({ ...rest, $defs: schema.$defs, definitions: schema['definitions'] });
+        } catch {
+          fn = null;
+        }
+        subs.set(sub, fn);
+      }
+      if (!fn) return undefined;
+      return fn(value) ? [] : (fn.errors ?? []).map((e) => toProblem(e, value));
+    },
+  };
 }
 
 function toProblem(e: ErrorObject, data: unknown): Problem {

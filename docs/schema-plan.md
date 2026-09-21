@@ -32,8 +32,11 @@ editable. Two kinds of users must both be served:
   arrays of objects render as tables inside the form. Large arrays never
   render as N expanded forms.
 - **Default layout.** With no schema: Tables (today's behaviour). With a
-  schema: Form when the root contains no array of objects, otherwise
-  Tables. The choice is remembered per file or per schema.
+  schema: Tables when the document is essentially a list of records (it is
+  an array, or its own properties hold an array of two or more objects),
+  otherwise Form. Lists nested deeper do not count, since the form shows
+  them as tables. The user's choice always wins for that document; it is
+  not yet remembered across documents.
 - **Standard JSON Schema keywords only.** No `discriminator` (OpenAPI, and
   Ajv rejects it) and no `x-*` extensions at first. The editor infers a
   discriminator as a property that is a `const` in every `oneOf` variant.
@@ -151,5 +154,12 @@ schema mapping and validation must stay fast on it.
   - [ ] Optional-columns chips (collapse sparse columns) — deferred; ghost columns cover "what can I add"
   - [x] `ⓘ` popover with descriptions, constraints, default and examples
 - [ ] Phase 2: form layout
-- [ ] Phase 3: variants and alternatives
+  - [x] First slice: Tables/Form toggle, default rule, objects as fields in schema order, ghost fields, collapsible groups, arrays as embedded tables, problems, jump, editing
+  - [ ] Outline panel, docs panel, search in the form, remembered choice, variant picker (phase 3)
+- [~] Phase 3: variants and alternatives
+  - [x] Variant picker in the form (chips, inline confirmation listing what is removed, reset or added)
+  - [x] Switching from a table cell: non-destructive (adds required keys, resets values that no longer fit)
+  - [x] Closest-variant error messages
+  - [x] Type toggle for non-discriminated alternatives (the restricted type dropdown)
+  - [ ] Variant picker for tables (rows) — the table has no place to ask before removing keys
 - [ ] Phase 4: plugin integration

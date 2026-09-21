@@ -44,7 +44,7 @@ export class JumpService {
   private focusWhenRendered(key: string, attempt = 0): void {
     const marker = document.querySelector(`[data-problem-key="${CSS.escape(key)}"]`);
     if (marker) {
-      const target = marker.closest('td, th') ?? marker;
+      const target = marker.closest('td, th, .field') ?? marker;
       target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
       target.classList.remove('jump-flash');
       void (target as HTMLElement).offsetWidth; // restart the animation if it is already running

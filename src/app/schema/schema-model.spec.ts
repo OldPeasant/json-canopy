@@ -266,6 +266,98 @@ describe('declaredKeysAt', () => {
   });
 });
 
+describe('variants', () => {
+  const board = load('plugin-demo/filters-demo.json');
+  const items = model('filters-demo');
+  const cfg = model('app-config');
+
+  it('lists the variants a discriminator tells apart', () => {
+    expect(items.variantsAt(['items', 0])).toEqual({
+      property: 'type',
+      variants: [
+        { label: 'To-do', values: ['todo'] },
+        { label: 'Bug', values: ['bug'] },
+        { label: 'Note', values: ['note'] },
+        { label: 'Event', values: ['event'] },
+      ],
+    });
+    expect(cfg.variantsAt(['database'])?.variants.map((v) => v.label)).toEqual(['SQLite', 'PostgreSQL']);
+    expect(model('team').variantsAt(['members', 0])).toBeUndefined();
+    expect(model('team').variantsAt(['members', 0, 'contact'])).toBeUndefined();
+  });
+
+  it('says which variant an object is', () => {
+    expect(items.variantIndexAt(['items', 1], board)).toBe(1);
+    expect(items.variantIndexAt(['items', 5], board)).toBe(3);
+    expect(items.variantIndexAt(['items', 0], { items: [{ type: 'nope' }] })).toBeUndefined();
+  });
+
+  it('reshapes a to-do into an event', () => {
+    const r = items.switchVariant(['items', 0], board, 'event')!;
+    expect(r.dropped).toEqual(['assignee']);
+    expect(r.reset).toEqual(['status']);
+    expect(r.added).toEqual(['date']);
+    expect(r.value).toEqual({ id: 1, type: 'event', title: 'Write hero copy', status: 'scheduled', description: 'Draft the headline and subhead for the new homepage hero.', date: '' });
+  });
+
+  it('keeps what the new variant also declares, and only resets what no longer fits', () => {
+    const r = items.switchVariant(['items', 0], board, 'bug')!;
+    expect(r.dropped).toEqual([]);
+    expect(r.reset).toEqual(['status']);
+    expect(r.value).toMatchObject({ type: 'bug', assignee: 'Alex', status: 'open' });
+  });
+
+  it('can leave the leftovers in place instead of dropping them', () => {
+    const r = items.switchVariant(['items', 0], board, 'event', false)!;
+    expect(r.dropped).toEqual([]);
+    expect(r.value['assignee']).toBe('Alex');
+    expect(r.added).toEqual(['date']);
+  });
+
+  it('switches a config block and adds what the variant requires', () => {
+    const data = { database: { driver: 'postgres', host: 'h', name: 'n', port: 5432 } };
+    const r = cfg.switchVariant(['database'], data, 'sqlite')!;
+    expect(r.dropped).toEqual(['host', 'name', 'port']);
+    expect(r.value).toEqual({ driver: 'sqlite', file: '' });
+    expect(r.added).toEqual(['file']);
+  });
+
+  it('keeps the position of the discriminator among the keys', () => {
+    const r = items.switchVariant(['items', 3], board, 'todo')!;
+    expect(Object.keys(r.value).slice(0, 3)).toEqual(['id', 'type', 'title']);
+  });
+
+  it('refuses a value that names no variant, and objects without variants', () => {
+    expect(items.switchVariant(['items', 0], board, 'nope')).toBeUndefined();
+    expect(model('team').switchVariant(['members', 0], load('team.json'), 'x')).toBeUndefined();
+  });
+
+  it('does not touch the data it was given', () => {
+    const copy = structuredClone(board);
+    items.switchVariant(['items', 0], board, 'event');
+    expect(board).toEqual(copy);
+  });
+});
+
+describe('requiredAt', () => {
+  it('lists the required keys of an object', () => {
+    expect([...model('team').requiredAt(['members', 0])]).toEqual(['id', 'name', 'role']);
+    expect([...model('team').requiredAt([])]).toEqual(['team', 'members']);
+  });
+
+  it('follows the variant the data selects', () => {
+    const board = load('plugin-demo/filters-demo.json');
+    const m = model('filters-demo');
+    expect(m.requiredAt(['items', 1], board).has('assignee')).toBe(true);
+    expect(m.requiredAt(['items', 0], board).has('assignee')).toBe(false);
+    expect(m.requiredAt(['items', 5], board).has('date')).toBe(true);
+  });
+
+  it('is empty where the schema says nothing', () => {
+    expect(model('team').requiredAt(['nowhere']).size).toBe(0);
+  });
+});
+
 describe('permitsKey', () => {
   it('refuses keys a closed object does not declare', () => {
     const team = model('team');
@@ -391,6 +483,73 @@ describe('validate', () => {
   it('honours a draft-07 schema', () => {
     const m = new SchemaModel({ $schema: 'http://json-schema.org/draft-07/schema#', type: 'object', required: ['a'] });
     expect(paths(m.validate({}))).toEqual(['a']);
+  });
+});
+
+describe('errors for alternatives', () => {
+  const describeAll = (m: SchemaModel, data: unknown) => m.validate(data).map((p) => `${p.path.join('.')} :: ${p.message}`);
+
+  it('reports only the variant a value looks like', () => {
+    const lines = describeAll(model('app-config'), load('config/app-config-invalid.json'));
+    expect(lines).toEqual(expect.arrayContaining([
+      "database.host :: must have required property 'host'",
+      "database.name :: must have required property 'name'",
+      'database.file :: must NOT have additional properties',
+      "features.newCheckout.enabled :: must have required property 'enabled'",
+      'features.newCheckout.rolloutPercent :: must be <= 100',
+    ]));
+    expect(lines.filter((l) => l.includes('oneOf') || l.includes('constant'))).toEqual([]);
+  });
+
+  it('keeps errors that do not come from the alternatives', () => {
+    const lines = describeAll(model('app-config'), load('config/app-config-invalid.json'));
+    expect(lines).toEqual(expect.arrayContaining(['server.port :: must be <= 65535', 'unknownSection :: must NOT have additional properties']));
+  });
+
+  it('boils a switched work item down to what is actually wrong', () => {
+    const board = load('plugin-demo/filters-demo.json');
+    const m = model('filters-demo');
+    board.items[0] = m.switchVariant(['items', 0], board, 'event', false)!.value;
+    expect(describeAll(m, board)).toEqual([
+      'items.0.date :: must match format "date"',
+      'items.0.assignee :: must NOT have unevaluated properties',
+    ]);
+  });
+
+  it('names the closest variant when the value looks like none', () => {
+    const board = load('plugin-demo/filters-demo.json');
+    board.items[1].type = 'gizmo';
+    const lines = describeAll(model('filters-demo'), board).filter((l) => l.startsWith('items.1'));
+    expect(lines[0]).toBe('items.1 :: fits none of the options (To-do, Bug, Note, Event); closest is Bug');
+    expect(lines).toContain('items.1.type :: must be equal to constant');
+  });
+
+  it('does the same for alternatives that are not told apart by a discriminator', () => {
+    const lines = describeAll(model('pipeline'), load('config/pipeline-invalid.json'));
+    expect(lines).toContain('jobs.test.steps.0 :: fits none of the options (Run command, Use action); closest is Run command');
+    expect(lines.filter((l) => l.includes('exactly one schema'))).toEqual([]);
+  });
+
+  it('says so when a value fits more than one option', () => {
+    const m = new SchemaModel({ oneOf: [{ type: 'string' }, { minLength: 1 }] });
+    expect(m.validate('abc').map((p) => p.message)).toEqual(['fits more than one option (string, option 2); it must fit exactly one']);
+  });
+
+  it('leaves valid documents valid', () => {
+    expect(model('app-config').validate(load('config/app-config.json'))).toEqual([]);
+    expect(model('filters-demo').validate(load('plugin-demo/filters-demo.json'))).toEqual([]);
+  });
+
+  it('falls back to the raw errors when a variant cannot be checked on its own', () => {
+    // The first variant points into the middle of the root, which cannot be compiled alone.
+    const m = new SchemaModel({
+      properties: {
+        a: { type: 'object' },
+        b: { oneOf: [{ type: 'object', properties: { q: { $ref: '#/properties/a' } } }, { type: 'number' }] },
+      },
+    });
+    const problems = m.validate({ b: true });
+    expect(problems.map((p) => p.keyword)).toContain('oneOf');
   });
 });
 

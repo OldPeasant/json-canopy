@@ -12,6 +12,10 @@
   flex-shrink: 0;
 }
 
+.toolbar-spacer {
+  flex: 1;
+}
+
 .filter-box {
   position: relative;
   display: flex;

@@ -56,9 +56,14 @@ export class EditableValueComponent {
   }
 
   onChoice(event: Event): void {
-    const index = Number((event.target as HTMLSelectElement).value);
+    const select = event.target as HTMLSelectElement;
+    const index = Number(select.value);
     const choices = this.choices;
     if (choices && index >= 0 && index !== this.choiceIndex) this.valueChange.emit(choices[index]);
+    // A parent may decline the change (a variant switch waiting for
+    // confirmation); the dropdown must then show the value that is really
+    // there. If the change was applied, the option bindings move it right after.
+    setTimeout(() => (select.value = String(this.choiceIndex)));
   }
 
   onTypeChange(event: Event): void {

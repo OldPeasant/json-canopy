@@ -6,8 +6,14 @@
         @if (fileName()) {
           <span class="filename">{{ fileName() }}</span>
         }
+        @if (!rawMode()) {
+          <div class="layout-toggle" role="group" aria-label="Layout">
+            <button type="button" [class.is-active]="layout.mode() === 'tables'" (click)="setLayout('tables')" title="Nested tables">Tables</button>
+            <button type="button" [class.is-active]="layout.mode() === 'form'" (click)="setLayout('form')" title="Labelled fields, in schema order">Form</button>
+          </div>
+        }
         <button type="button" class="btn" (click)="toggleRawMode()">
-          {{ rawMode() ? 'Table view' : 'Raw JSON' }}
+          {{ rawMode() ? 'Back' : 'Raw JSON' }}
         </button>
         <button type="button" class="btn" (click)="copyJson()">{{ copied() ? 'Copied!' : 'Copy JSON' }}</button>
         @if (!hostBridge.isHostMode()) {
@@ -35,7 +41,7 @@
           Change…
           <input type="file" accept=".json,application/json,application/schema+json" (change)="onSchemaSelected($event)" hidden />
         </label>
-        <button type="button" class="btn" (click)="schema.clear()">Remove</button>
+        <button type="button" class="btn" (click)="removeSchema()">Remove</button>
       } @else {
         <span class="schema-name none">none</span>
         @if (schemaRef(); as ref) {
@@ -86,7 +92,7 @@
           </div>
         </div>
       } @else {
-        <app-json-explorer [value]="data()" (valueChange)="onDataChange($event)" />
+        <app-json-explorer [value]="data()" [layout]="layout.mode()" (valueChange)="onDataChange($event)" />
       }
     } @else if (hostBridge.isHostMode()) {
       <div class="loader">

@@ -6,6 +6,8 @@ import { CollapseService } from './json-explorer/services/collapse.service';
 import { RevealService } from './json-explorer/services/reveal.service';
 import { SchemaService } from './json-explorer/services/schema.service';
 import { JumpService } from './json-explorer/services/jump.service';
+import { LayoutService } from './json-explorer/services/layout.service';
+import type { Layout } from './json-explorer/layout.util';
 import { formatPath, schemaRefOf, type Problem } from './schema';
 
 @Component({
@@ -21,6 +23,7 @@ export class App {
   protected hostBridge = inject(HostBridgeService);
   protected schema = inject(SchemaService);
   private jump = inject(JumpService);
+  protected layout = inject(LayoutService);
 
   protected readonly data = signal<unknown>(undefined);
   protected readonly fileName = signal<string | null>(null);
@@ -121,6 +124,15 @@ export class App {
     URL.revokeObjectURL(url);
   }
 
+  setLayout(mode: Layout): void {
+    this.layout.choose(mode);
+  }
+
+  removeSchema(): void {
+    this.schema.clear();
+    this.layout.suggest(this.data(), false);
+  }
+
   jumpTo(problem: Problem): void {
     this.jump.to(problem, this.data());
   }
@@ -130,7 +142,9 @@ export class App {
     const file = input.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = () => this.schema.load(reader.result as string, file.name);
+      reader.onload = () => {
+        if (this.schema.load(reader.result as string, file.name)) this.layout.suggest(this.data(), true);
+      };
       reader.readAsText(file);
     }
     input.value = '';
@@ -184,10 +198,14 @@ export class App {
 
   private parse(text: string, fileName: string | null): void {
     try {
-      this.data.set(JSON.parse(text));
+      const parsed = JSON.parse(text);
+      this.data.set(parsed);
       this.fileName.set(fileName);
       this.error.set(null);
       this.editMode.reset();
+      // A new document starts without the last one's layout choice.
+      this.layout.reset();
+      this.layout.suggest(parsed, this.schema.model() !== undefined);
       // Reveal counts describe THIS document's array/object sizes, not a
       // view preference worth carrying over to the next file — unlike
       // orientation/hidden-column state, which deliberately persists.

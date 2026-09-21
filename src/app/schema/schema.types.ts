@@ -93,3 +93,21 @@ export interface NodeMeta {
   /** Plain-words constraints: `≥ 1`, `one of: a, b`, `required: id, name`. */
   constraints: string[];
 }
+
+/** The variants of a oneOf/anyOf that a discriminator property tells apart. */
+export interface VariantInfo {
+  property: string;
+  variants: Array<{ label: string; values: unknown[] }>;
+}
+
+/** What choosing another variant does to an object. */
+export interface VariantSwitch {
+  /** The reshaped object. */
+  value: Record<string, unknown>;
+  /** Keys the new variant does not allow; absent from `value` when the switch drops them. */
+  dropped: string[];
+  /** Keys kept but given a fresh value because the old one does not fit the new variant. */
+  reset: string[];
+  /** Required keys of the new variant that the object lacked. */
+  added: string[];
+}

@@ -1,5 +1,7 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
+import { JsonFormComponent } from './json-form/json-form.component';
 import { JsonTableComponent } from './json-table/json-table.component';
+import type { Layout } from './layout.util';
 import { FilterMode, FilterService } from './services/filter.service';
 import { EditModeService } from './services/edit-mode.service';
 import { ColumnSyncService } from './services/column-sync.service';
@@ -7,7 +9,7 @@ import { ColumnSyncService } from './services/column-sync.service';
 @Component({
   selector: 'app-json-explorer',
   standalone: true,
-  imports: [JsonTableComponent],
+  imports: [JsonTableComponent, JsonFormComponent],
   templateUrl: './json-explorer.component.html',
   styleUrl: './json-explorer.component.css',
 })
@@ -18,6 +20,10 @@ export class JsonExplorerComponent {
   // shape (e.g. every llm_request's request.messages/request.tools) should
   // keep sharing the same view configuration instead of forgetting it.
   @Input({ required: true }) value: unknown;
+
+  // Two renderings of the same document. The form has no search: what a
+  // search does to a form (hide fields?) is an open question.
+  @Input() layout: Layout = 'tables';
 
   // Bubbled up from the root `app-json-table` unchanged — `App` is the one
   // that owns the actual `data` signal and does `data.set($event)`.
