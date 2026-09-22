@@ -466,7 +466,11 @@ export class JsonTableComponent implements OnInit {
     if (!trimmed) return;
     const obj = this.value as Record<string, unknown>;
     if (Object.prototype.hasOwnProperty.call(obj, trimmed)) return;
-    this.valueChange.emit(withEntry(obj, trimmed, ''));
+    // Seeded from the schema when it describes this key or this object is a
+    // map with a value schema (e.g. products keyed by slug) — same reasoning
+    // as addItem.
+    const seeded = this.schema.seedFor(this.uid, trimmed);
+    this.valueChange.emit(withEntry(obj, trimmed, seeded !== undefined ? seeded : ''));
     // See addItem's comment: keeps a fully-shown object fully shown.
     this.reveal.revealMore(this.path, 1, Object.keys(obj).length + 1);
   }
