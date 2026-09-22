@@ -121,7 +121,10 @@ export class JsonTableComponent implements OnInit {
   }
 
   addGhost(g: GhostKey): void {
-    this.valueChange.emit(withEntry(this.value as Record<string, unknown>, g.key, this.schema.seed(g.schema)));
+    const obj = this.value as Record<string, unknown>;
+    this.valueChange.emit(withEntry(obj, g.key, this.schema.seed(g.schema)));
+    // See addItem's comment: keeps a fully-shown object fully shown.
+    this.reveal.revealMore(this.path, 1, Object.keys(obj).length + 1);
   }
 
   get isContainer(): boolean { return this.type === 'object' || this.type === 'array'; }
@@ -464,6 +467,8 @@ export class JsonTableComponent implements OnInit {
     const obj = this.value as Record<string, unknown>;
     if (Object.prototype.hasOwnProperty.call(obj, trimmed)) return;
     this.valueChange.emit(withEntry(obj, trimmed, ''));
+    // See addItem's comment: keeps a fully-shown object fully shown.
+    this.reveal.revealMore(this.path, 1, Object.keys(obj).length + 1);
   }
 
   // --- array mutation (plain items and array-of-objects items alike) ---
@@ -475,8 +480,20 @@ export class JsonTableComponent implements OnInit {
     this.valueChange.emit(withoutItemAt(this.arr, index));
   }
 
+  // Seeded from the array's item schema when there is one (so appending to
+  // an array of records adds a real record, not a bare string with no keys
+  // of its own to hold name/price/etc. in) — '' otherwise, as before.
   addItem(): void {
-    this.valueChange.emit(withAppended(this.arr, ''));
+    const seeded = this.schema.seedItemFor(this.uid);
+    const next = withAppended(this.arr, seeded !== undefined ? seeded : '');
+    this.valueChange.emit(next);
+    // A short array is normally shown in full (revealedCount === its
+    // length); appending an item then leaves it one short, hiding exactly
+    // the row just added, with no visible sign anything is missing unless
+    // the reveal bar is noticed. Growing the revealed count by one keeps a
+    // "fully shown" array fully shown; a genuinely paginated (huge) array
+    // is deliberately left as is, so one click never dumps thousands of rows.
+    this.reveal.revealMore(this.path, 1, next.length);
   }
 
   // --- array-of-objects cell mutation: edits/deletes one key within one

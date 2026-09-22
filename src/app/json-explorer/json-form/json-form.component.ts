@@ -243,5 +243,9 @@ export class JsonFormComponent {
     const trimmed = key.trim();
     if (!trimmed || Object.prototype.hasOwnProperty.call(this.value, trimmed)) return;
     this.onFieldChange(trimmed, this.schema.seedFor(this.uid, trimmed) ?? '');
+    // See JsonTableComponent.addItem's comment: keeps a fully-shown object
+    // fully shown. Ghost keys (declared but absent) don't need this — they
+    // are already counted in `fields`/`visibleFields` before being added.
+    this.reveal.revealMore(formRevealKey(this.path), 1, this.visibleFields.length + 1);
   }
 }

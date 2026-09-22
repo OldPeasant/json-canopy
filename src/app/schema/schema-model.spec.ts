@@ -339,6 +339,36 @@ describe('variants', () => {
   });
 });
 
+describe('seedItem', () => {
+  it('seeds a real record for an array of objects, not a bare scalar', () => {
+    const m = model('team');
+    const data = load('team.json');
+    const seeded = m.seedItem(['members'], data);
+    expect(seeded).toEqual({ id: 1, name: '', role: 'engineer' });
+  });
+
+  it('is undefined when the schema says nothing about items there', () => {
+    const m = new SchemaModel({ type: 'array' });
+    expect(m.seedItem([], [])).toBeUndefined();
+  });
+
+  it('is undefined when the path is not an array', () => {
+    const m = model('team');
+    expect(m.seedItem([], load('team.json'))).toBeUndefined();
+  });
+
+  it('seeds a scalar item as the schema default, plain-string-array style', () => {
+    const m = model('team');
+    const data = load('team.json');
+    expect(m.seedItem(['members', 0, 'skills'], data)).toBe('');
+  });
+
+  it('indexes by the current length, so a tuple (prefixItems) schema seeds the right slot', () => {
+    const m = new SchemaModel({ type: 'array', prefixItems: [{ const: 'a' }, { const: 'b' }] });
+    expect(m.seedItem([], ['a'])).toBe('b');
+  });
+});
+
 describe('requiredAt', () => {
   it('lists the required keys of an object', () => {
     expect([...model('team').requiredAt(['members', 0])]).toEqual(['id', 'name', 'role']);

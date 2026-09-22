@@ -173,6 +173,16 @@ export class SchemaService {
     return node ? model.seed(node) : undefined;
   }
 
+  /**
+   * A schema-shaped starting value for the next item to append to the array
+   * at `arrayKey`, or undefined when the schema has nothing to say about it.
+   */
+  seedItemFor(arrayKey: string): unknown {
+    const model = this._model();
+    const data = this.data();
+    return model && data !== undefined ? model.seedItem(parsePathKey(arrayKey), data) : undefined;
+  }
+
   /** The JSON types the schema allows at this node, or undefined when it says nothing. */
   typesFor(key: string): readonly JsonType[] | undefined {
     const { model, byKey } = this.typeCache();

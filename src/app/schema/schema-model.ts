@@ -125,6 +125,18 @@ export class SchemaModel {
     };
   }
 
+  /**
+   * A schema-shaped starting value for the next item to append to the
+   * array at `path` (index `data`'s current length), or undefined if the
+   * schema says nothing about items there or `path` isn't an array.
+   */
+  seedItem(path: Path, data: unknown): unknown {
+    const arr = valueAt(data, path);
+    if (!Array.isArray(arr)) return undefined;
+    const nodes = this.nodesAt([...path, arr.length], data);
+    return nodes.length ? this.seed(nodes[0]) : undefined;
+  }
+
   /** Whether the node at `path`, or any node above it, is `readOnly`. */
   readOnlyAt(path: Path, data?: unknown): boolean {
     for (let depth = 0; depth <= path.length; depth++) {
