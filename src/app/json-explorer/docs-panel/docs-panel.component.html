@@ -1,14 +1,21 @@
 <header class="head">Docs</header>
 @if (key !== undefined) {
   <div class="path">{{ path }}</div>
+  @if (problems.length) {
+    <div class="status bad">⚠ {{ problems.length }} {{ problems.length === 1 ? 'problem' : 'problems' }}</div>
+  } @else {
+    <div class="status ok">✔ valid{{ below ? ' here' : '' }}</div>
+  }
   @if (meta; as m) {
     <app-schema-doc [meta]="m" [required]="required" />
   } @else {
-    <p class="none">The schema says nothing about this key.</p>
+    <p class="none">The schema does not restrict this key — any value is accepted here.</p>
   }
   @if (problems.length || below) {
     <div class="problems">
-      <span class="problems-head">Problems</span>
+      @if (problems.length) {
+        <span class="problems-head">Problems</span>
+      }
       @for (p of problems; track $index) {
         <span class="problem">{{ p.message }}</span>
       }
@@ -18,5 +25,5 @@
     </div>
   }
 } @else {
-  <p class="none">Focus a field to see what the schema says about it.</p>
+  <p class="none">Focus a field to see whether it's valid and what the schema says about it.</p>
 }

@@ -24,6 +24,18 @@
   word-break: break-all;
 }
 
+.status {
+  font-weight: 700;
+}
+
+.status.ok {
+  color: var(--val-str);
+}
+
+.status.bad {
+  color: var(--danger);
+}
+
 .none {
   margin: 0;
   color: var(--text-faint);
