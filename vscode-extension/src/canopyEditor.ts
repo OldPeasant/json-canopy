@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { decode, encode } from './bridge';
 import { DocumentSync } from './documentSync';
+import { ResolveInput, ResolverIo, SchemaAssociation, SchemaSession, SchemaUpdates } from './schemaResolver';
 import { buildWebviewHtml, errorHtml, newNonce, Theme } from './webviewHtml';
 
 /**
@@ -52,6 +53,11 @@ export class CanopyEditorProvider implements vscode.CustomTextEditorProvider {
       name,
       readOnly,
     );
+    const schema = new SchemaUpdates(new SchemaSession(schemaIo), () => schemaInput(document), (payload) => {
+      this.log.trace(`→ page: SET_SCHEMA ${payload.status}${payload.name ? ` ${payload.name}` : ''} (${name})`);
+      if (payload.status === 'failed') this.log.warn(`${name}: ${payload.message}`);
+      void panel.webview.postMessage(encode({ type: 'SET_SCHEMA', payload }));
+    });
 
     // Subscribed before the page is loaded, so its READY can't be missed.
     const subscriptions = [
@@ -66,21 +72,33 @@ export class CanopyEditorProvider implements vscode.CustomTextEditorProvider {
           case 'READY':
             this.log.info(`Page ready, loading ${document.uri.toString(true)}${readOnly ? ' (read-only)' : ''}`);
             sync.onPageReady();
+            void schema.pageReady();
             break;
           case 'DOCUMENT_CHANGED':
             void sync.onPageEdit(message.payload.text);
             break;
           case 'FETCH_SCHEMA':
-            // Step 4.
+            void schema.fetch(message.payload.url).then((offered) => {
+              if (!offered) this.log.warn(`Ignoring a request to fetch a schema that was not offered: ${message.payload.url}`);
+            });
             break;
         }
       }),
       vscode.workspace.onDidChangeTextDocument((event) => {
         // Events without content changes only report dirty-state changes.
-        if (event.document === document && event.contentChanges.length > 0) sync.onDocumentChanged();
+        if (event.document !== document || event.contentChanges.length === 0) return;
+        sync.onDocumentChanged();
+        // Also after our own write-back: the page's Raw JSON mode can change $schema.
+        schema.refreshSoon();
+      }),
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('json.schemas', document.uri)) schema.refreshSoon();
       }),
     ];
-    panel.onDidDispose(() => subscriptions.forEach((s) => s.dispose()));
+    panel.onDidDispose(() => {
+      subscriptions.forEach((s) => s.dispose());
+      schema.dispose();
+    });
 
     panel.webview.html = await this.loadHtml();
   }
@@ -95,6 +113,40 @@ export class CanopyEditorProvider implements vscode.CustomTextEditorProvider {
     }
     return buildWebviewHtml(raw, newNonce(), themeOf(vscode.window.activeColorTheme.kind));
   }
+}
+
+// Schema files are read as the user sees them: an open editor's unsaved
+// text first, the file system otherwise.
+const schemaIo: ResolverIo = {
+  async readText(uri) {
+    let target: vscode.Uri;
+    try {
+      target = vscode.Uri.parse(uri, true);
+    } catch {
+      return null;
+    }
+    const open = vscode.workspace.textDocuments.find((d) => d.uri.toString() === target.toString());
+    if (open) return open.getText();
+    try {
+      return new TextDecoder().decode(await vscode.workspace.fs.readFile(target));
+    } catch {
+      return null;
+    }
+  },
+};
+
+function schemaInput(document: vscode.TextDocument): ResolveInput {
+  const inspected = vscode.workspace.getConfiguration('json', document.uri).inspect<unknown>('schemas');
+  // Most specific scope first, as findAssociation takes the first match.
+  const associations = [inspected?.workspaceFolderValue, inspected?.workspaceValue, inspected?.globalValue].flatMap((value) =>
+    Array.isArray(value) ? value.filter((a): a is SchemaAssociation => a !== null && typeof a === 'object') : [],
+  );
+  return {
+    documentText: document.getText(),
+    documentUri: document.uri.toString(),
+    folderUri: vscode.workspace.getWorkspaceFolder(document.uri)?.uri.toString() ?? null,
+    associations,
+  };
 }
 
 // Read-only file systems (git: and other diff views, some remote ones) and

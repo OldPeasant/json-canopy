@@ -101,6 +101,11 @@ both directions map onto `acquireVsCodeApi().postMessage` and the
      v1). Same guard as IntelliJ: only the URL that was
      offered may be fetched; the result is cached for the editor's life.
   4. otherwise `none`; a local reference that can't be read → `failed`.
+  Several matching `json.schemas` entries: VS Code combines them, we take
+  the most specific one (folder before workspace before user, then order).
+  Relative urls resolve against the document's workspace folder in every
+  scope. A remote `json.schemas` url also asks first, though VS Code's own
+  JSON support downloads it without asking.
   **Not in v1:** SchemaStore catalogue matching (VS Code's JSON service
   does this automatically; we'd have to download and cache the catalogue)
   and schemas contributed by other extensions via `jsonValidation`.
@@ -193,5 +198,10 @@ Each step ends in something visible in an Extension Development Host
   - [x] Shim follows VS Code's body class (light, dark, both high-contrast kinds) via a MutationObserver; initial `data-theme` from `activeColorTheme.kind` written into the markup
   - [x] Headless Chromium: all four classes map correctly and switch live, under the CSP
   - [x] Manual: opens in the current theme, follows a theme switch live (after a window reload: a reinstalled same-version `.vsix` keeps the old code running until then)
-- [ ] Step 4: schema
+- [x] Step 4: schema
+  - [x] `schemaResolver.ts` (no `vscode` import): local `$schema` → `json.schemas` (folder, workspace, user scope; fileMatch globs with `/` anchoring and `!` exclusions; url or inline schema) → remote needs consent; offered-URL guard and per-editor download cache (`SchemaSession`)
+  - [x] `SchemaUpdates`: re-resolved after load, every document change (also own edits: Raw JSON may change `$schema`) and `json.schemas` changes; debounced, newest lookup wins, unchanged results not re-sent
+  - [x] Unit tests (56 in total)
+  - [x] Scripted run in VS Code 1.139: local `$schema`, folder `json.schemas` mapping, remote → needsConsent, mapping removed live → none, `$schema` edited to a missing file → failed
+  - [x] Manual (0.0.2 `.vsix`): "Fetch schema" on a remote `$schema` downloads and applies it
 - [ ] Step 5: entry points, packaging
