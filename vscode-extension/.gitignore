@@ -1,0 +1,7 @@
+node_modules/
+dist/
+out/
+*.vsix
+# Copied from ../dist by `npm run copy:webview` — not source.
+webview/
+.vscode-test/
