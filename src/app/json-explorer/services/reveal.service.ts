@@ -13,44 +13,40 @@ export class RevealService {
 
   readonly batches = REVEAL_BATCHES;
 
-  private getOrCreate(path: string, initial: number): WritableSignal<number> {
+  private extra(path: string): WritableSignal<number> {
     let sig = this.signals.get(path);
     if (!sig) {
-      sig = signal(initial);
+      sig = signal(0);
       this.signals.set(path, sig);
     }
     return sig;
   }
 
-  // `initial` (the byte-budget-derived starting count from reveal.util.ts)
-  // only takes effect the first time this path is seen; after that, the
-  // signal's own value — grown via revealMore/revealAll — is authoritative.
-  // Clamping to `filteredLength` here (rather than when storing) means a
-  // filter that later shrinks the visible set doesn't lose the user's
-  // "revealed more" progress if they clear the filter again.
+  // The signal holds how many items the user revealed *beyond* the usual
+  // first page, never an absolute count. `initial` is recomputed from the
+  // current (post-filter) length on every read, so an array first drawn
+  // while a search showed only 2 of its 3 items isn't stuck at 2 once the
+  // search changes or is cleared. Clamping to `filteredLength` on read means
+  // a filter that shrinks the visible set doesn't lose the user's "revealed
+  // more" progress if they clear the filter again.
   count(path: string, filteredLength: number, initial: number): number {
-    return Math.min(this.getOrCreate(path, initial)(), filteredLength);
+    return Math.min(initial + this.extra(path)(), filteredLength);
   }
 
-  hasMore(path: string, filteredLength: number, initial: number): boolean {
-    return this.count(path, filteredLength, initial) < filteredLength;
-  }
-
-  revealMore(path: string, by: number, filteredLength: number): void {
-    this.getOrCreate(path, 0).update(n => Math.min(filteredLength, n + by));
+  revealMore(path: string, by: number): void {
+    this.extra(path).update(n => n + by);
   }
 
   // Makes sure the child at `position` is among the revealed ones, growing
-  // the count only as far as that. `initial` is what the count would start at
-  // if nobody had touched it, so a jump to an early item leaves the usual
-  // first page as it was.
-  ensure(path: string, position: number, filteredLength: number, initial: number): void {
-    const sig = this.getOrCreate(path, initial);
-    if (position >= Math.min(sig(), filteredLength)) sig.set(Math.min(filteredLength, position + 1));
+  // the count only as far as that, so a jump to an early item leaves the
+  // usual first page as it was.
+  ensure(path: string, position: number, initial: number): void {
+    const sig = this.extra(path);
+    sig.set(Math.max(sig(), position + 1 - initial));
   }
 
-  revealAll(path: string, filteredLength: number): void {
-    this.getOrCreate(path, 0).set(filteredLength);
+  revealAll(path: string): void {
+    this.extra(path).set(Infinity);
   }
 
   clear(): void {

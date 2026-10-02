@@ -44,8 +44,8 @@ export class JumpService {
       const byForm = this.layout.mode() === 'form' && !inTable && step.kind === 'object';
       const fields = byForm ? this.formFieldsOf(step) : undefined;
       const position = fields ? Math.max(0, fields.findIndex(f => f.key === step.key)) : step.position;
-      const { length, initial } = this.sizeOf(step, fields?.length);
-      this.reveal.ensure(byForm ? formRevealKey(step.path) : step.path, position, length, initial);
+      const { initial } = this.sizeOf(step, fields?.length);
+      this.reveal.ensure(byForm ? formRevealKey(step.path) : step.path, position, initial);
       if (step.kind !== 'object') inTable = true;
     }
     this.focus.set(pathKey(anchor));

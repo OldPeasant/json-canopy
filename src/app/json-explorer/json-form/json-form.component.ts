@@ -126,9 +126,9 @@ export class JsonFormComponent {
 
   get hasMore(): boolean { return this.revealedCount < this.visibleFields.length; }
 
-  revealMore(by: number): void { this.reveal.revealMore(formRevealKey(this.path), by, this.visibleFields.length); }
+  revealMore(by: number): void { this.reveal.revealMore(formRevealKey(this.path), by); }
 
-  revealAll(): void { this.reveal.revealAll(formRevealKey(this.path), this.visibleFields.length); }
+  revealAll(): void { this.reveal.revealAll(formRevealKey(this.path)); }
 
   childForce(key: string): boolean {
     return this.effectiveForce || this.filter.forces(key, this.childOf(key)) || this.filter.groupMatch(this.entries);
@@ -246,6 +246,6 @@ export class JsonFormComponent {
     // See JsonTableComponent.addItem's comment: keeps a fully-shown object
     // fully shown. Ghost keys (declared but absent) don't need this — they
     // are already counted in `fields`/`visibleFields` before being added.
-    this.reveal.revealMore(formRevealKey(this.path), 1, this.visibleFields.length + 1);
+    this.reveal.revealMore(formRevealKey(this.path), 1);
   }
 }

@@ -124,7 +124,7 @@ export class JsonTableComponent implements OnInit {
     const obj = this.value as Record<string, unknown>;
     this.valueChange.emit(withEntry(obj, g.key, this.schema.seed(g.schema)));
     // See addItem's comment: keeps a fully-shown object fully shown.
-    this.reveal.revealMore(this.path, 1, Object.keys(obj).length + 1);
+    this.reveal.revealMore(this.path, 1);
   }
 
   get isContainer(): boolean { return this.type === 'object' || this.type === 'array'; }
@@ -335,11 +335,11 @@ export class JsonTableComponent implements OnInit {
   }
 
   revealMoreItems(by: number): void {
-    this.reveal.revealMore(this.path, by, this.currentFilteredLength);
+    this.reveal.revealMore(this.path, by);
   }
 
   revealAllItems(): void {
-    this.reveal.revealAll(this.path, this.currentFilteredLength);
+    this.reveal.revealAll(this.path);
   }
 
   itemForceVisible(item: unknown): boolean {
@@ -472,7 +472,7 @@ export class JsonTableComponent implements OnInit {
     const seeded = this.schema.seedFor(this.uid, trimmed);
     this.valueChange.emit(withEntry(obj, trimmed, seeded !== undefined ? seeded : ''));
     // See addItem's comment: keeps a fully-shown object fully shown.
-    this.reveal.revealMore(this.path, 1, Object.keys(obj).length + 1);
+    this.reveal.revealMore(this.path, 1);
   }
 
   // --- array mutation (plain items and array-of-objects items alike) ---
@@ -497,7 +497,7 @@ export class JsonTableComponent implements OnInit {
     // the reveal bar is noticed. Growing the revealed count by one keeps a
     // "fully shown" array fully shown; a genuinely paginated (huge) array
     // is deliberately left as is, so one click never dumps thousands of rows.
-    this.reveal.revealMore(this.path, 1, next.length);
+    this.reveal.revealMore(this.path, 1);
   }
 
   // --- array-of-objects cell mutation: edits/deletes one key within one
