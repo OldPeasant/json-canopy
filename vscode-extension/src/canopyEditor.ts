@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import { decode, encode } from './bridge';
 import { DocumentSync } from './documentSync';
-import { buildWebviewHtml, errorHtml, newNonce } from './webviewHtml';
+import { buildWebviewHtml, errorHtml, newNonce, Theme } from './webviewHtml';
 
 /**
  * Hosts the JSON Canopy web app (built by the Angular project one directory
@@ -93,7 +93,7 @@ export class CanopyEditorProvider implements vscode.CustomTextEditorProvider {
     } catch {
       return errorHtml("JSON Canopy's bundled web app is missing from this extension build.");
     }
-    return buildWebviewHtml(raw, newNonce());
+    return buildWebviewHtml(raw, newNonce(), themeOf(vscode.window.activeColorTheme.kind));
   }
 }
 
@@ -111,6 +111,11 @@ async function isReadOnly(uri: vscode.Uri): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+// Matches the shim's mapping of VS Code's body classes (webviewHtml.ts).
+function themeOf(kind: vscode.ColorThemeKind): Theme {
+  return kind === vscode.ColorThemeKind.Light || kind === vscode.ColorThemeKind.HighContrastLight ? 'light' : 'dark';
 }
 
 function fileName(uri: vscode.Uri): string {

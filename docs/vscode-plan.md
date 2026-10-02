@@ -189,6 +189,9 @@ Each step ends in something visible in an Extension Development Host
   - [x] Trace logging of every bridge message (Output → "JSON Canopy", level Trace)
   - [x] Scripted run in VS Code 1.139 (`--extensionTestsPath`): CRLF file opens, an external edit reaches the page as one EXTERNAL_RELOAD
   - [x] Manual (installed `.vsix`, real VS Code): edit in the page → text tab, dirty dot, undo/save, text tab → page
-- [ ] Step 3: theme
+- [x] Step 3: theme
+  - [x] Shim follows VS Code's body class (light, dark, both high-contrast kinds) via a MutationObserver; initial `data-theme` from `activeColorTheme.kind` written into the markup
+  - [x] Headless Chromium: all four classes map correctly and switch live, under the CSP
+  - [x] Manual: opens in the current theme, follows a theme switch live (after a window reload: a reinstalled same-version `.vsix` keeps the old code running until then)
 - [ ] Step 4: schema
 - [ ] Step 5: entry points, packaging

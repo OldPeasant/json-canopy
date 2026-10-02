@@ -8,6 +8,13 @@
 // Messages from the extension arrive as JSON strings too and go to
 // `window.__canopyHost.dispatch`, which HostBridgeService registers before
 // it sends READY — so nothing is posted before someone is listening.
+//
+// Theme: VS Code puts the colour theme's kind on <body> as a class
+// (vscode-light, vscode-dark, vscode-high-contrast, vscode-high-contrast-light)
+// and changes it live. The web app's whole theme is the `data-theme`
+// attribute on <html> (src/styles.css), so following that class is all a
+// theme switch takes — the counterpart of the IntelliJ plugin's ThemeSync.
+// High contrast maps to the nearest of light and dark.
 const HOST_SHIM = `
 window.__JSON_CANOPY_HOST__ = true;
 (function () {
@@ -16,8 +23,24 @@ window.__JSON_CANOPY_HOST__ = true;
   window.addEventListener('message', function (event) {
     if (typeof event.data === 'string' && window.__canopyHost) window.__canopyHost.dispatch(event.data);
   });
+
+  function applyTheme() {
+    var classes = document.body.classList;
+    var theme = classes.contains('vscode-light') || classes.contains('vscode-high-contrast-light') ? 'light'
+      : classes.contains('vscode-dark') || classes.contains('vscode-high-contrast') ? 'dark'
+      : null;
+    if (theme) document.documentElement.setAttribute('data-theme', theme);
+  }
+  function followTheme() {
+    applyTheme();
+    new MutationObserver(applyTheme).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  }
+  if (document.body) followTheme();
+  else document.addEventListener('DOMContentLoaded', followTheme);
 })();
 `;
+
+export type Theme = 'light' | 'dark';
 
 // - script-src: only our nonced inline scripts, plus 'unsafe-eval' because
 //   Ajv compiles each schema's validator with `new Function`.
@@ -36,7 +59,11 @@ export function contentSecurityPolicy(nonce: string): string {
   ].join('; ');
 }
 
-export function buildWebviewHtml(raw: string, nonce: string): string {
+// `theme` is the initial `data-theme`, written into the markup so the page
+// doesn't flash in the wrong theme before the shim has seen <body>. The
+// bundled page always has the literal data-theme="dark" (src/index.html).
+export function buildWebviewHtml(raw: string, nonce: string, theme: Theme): string {
+  raw = raw.replace('data-theme="dark"', `data-theme="${theme}"`);
   const head = raw.indexOf('<head>');
   if (head < 0) throw new Error('The bundled web app has no <head>.');
   const at = head + '<head>'.length;

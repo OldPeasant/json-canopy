@@ -14,7 +14,7 @@ const s = "<script>alert(1)</" + "script>"; const t = '<script src=x>';
 </html>`;
 
 describe('buildWebviewHtml', () => {
-  const html = buildWebviewHtml(PAGE, 'abc');
+  const html = buildWebviewHtml(PAGE, 'abc', 'dark');
 
   it('puts the CSP and the host shim first in <head>, before the app bundle', () => {
     const csp = html.indexOf('Content-Security-Policy');
@@ -40,7 +40,12 @@ describe('buildWebviewHtml', () => {
   });
 
   it('rejects a page without <head>', () => {
-    expect(() => buildWebviewHtml('<html></html>', 'abc')).toThrow();
+    expect(() => buildWebviewHtml('<html></html>', 'abc', 'dark')).toThrow();
+  });
+
+  it('writes the initial theme into the markup', () => {
+    expect(buildWebviewHtml(PAGE, 'abc', 'light')).toContain('<html lang="en" data-theme="light">');
+    expect(html).toContain('<html lang="en" data-theme="dark">');
   });
 });
 
