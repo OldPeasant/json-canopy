@@ -139,6 +139,10 @@ both directions map onto `acquireVsCodeApi().postMessage` and the
   may reset). Same as IntelliJ.
 - Two Canopy tabs on the same file each get every change as
   `EXTERNAL_RELOAD`; no smarter merging.
+- Files over 50 MB don't open in Canopy: VS Code doesn't sync documents
+  that large to the extension host, so the custom editor is never
+  resolved (a 92 MB file showed an empty tab). 12 MB: page ready in
+  0.3 s, schema resolved in 0.1 s.
 - Remembered layout (browser storage) — webview storage is not
   guaranteed to persist; see open questions.
 
@@ -204,4 +208,10 @@ Each step ends in something visible in an Extension Development Host
   - [x] Unit tests (56 in total)
   - [x] Scripted run in VS Code 1.139: local `$schema`, folder `json.schemas` mapping, remote → needsConsent, mapping removed live → none, `$schema` edited to a missing file → failed
   - [x] Manual (0.0.2 `.vsix`): "Fetch schema" on a remote `$schema` downloads and applies it
-- [ ] Step 5: entry points, packaging
+- [x] Step 5: entry points, packaging
+  - [x] Commands "Open in JSON Canopy" (text editor title bar, Explorer context menu, palette) and "Open Text Editor to the Side" (Canopy's title bar)
+  - [x] Icon (`images/icon.png`, rendered from the IntelliJ `pluginIcon.svg`), README, repository metadata, LICENSE/NOTICE copied in at build time
+  - [x] `npm run package` builds web app + extension and writes the `.vsix` (no vsce warnings)
+  - [x] Large files: 12 MB fine; over 50 MB not possible (see limitations)
+  - [x] Root README: VS Code section (build, install, publish)
+  - [x] Manual (0.0.3 `.vsix`): title-bar buttons and Explorer entry

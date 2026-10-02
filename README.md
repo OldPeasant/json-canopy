@@ -104,7 +104,10 @@ A file's `$schema` is used when it points to a file the IDE can read. In
 the **IntelliJ plugin** the schema is found for you: a local `$schema`, else
 whatever the IDE's JSON Schema support applies (your mappings, the
 SchemaStore catalog). A remote `$schema` the IDE does not already have is
-**never fetched without asking**; the schema bar offers it. In the
+**never fetched without asking**; the schema bar offers it. The **VS Code
+extension** does the same with a local `$schema`, else your `json.schemas`
+setting (VS Code's JSON support doesn't share its own lookup), and asks
+before any download. In the
 standalone app the same prompt fetches with the browser's `fetch`
 (the server must allow CORS); a relative `$schema` cannot be resolved
 there, so choose the file.
@@ -132,6 +135,24 @@ network access needed either: the Orbitron / Share Tech Mono webfonts
 are vendored as base64 data URIs in `src/styles.css` rather than
 fetched from Google Fonts at runtime.
 
+## VS Code extension
+
+`vscode-extension/` hosts the same single-file page in a VS Code custom
+text editor (see [`docs/vscode-plan.md`](docs/vscode-plan.md) and the
+extension's own [README](vscode-extension/README.md)). From there:
+
+```bash
+npm install
+npm test           # unit tests (Vitest)
+npm run package    # builds the web app and the extension, writes json-canopy-<version>.vsix
+```
+
+Install the `.vsix` with **Extensions → ⋯ → Install from VSIX…**, or press
+F5 on the **VS Code extension** launch configuration for a development
+window. Raise `version` in `vscode-extension/package.json` for every
+package you install: VS Code keeps running a reinstalled same-version
+build until the window reloads.
+
 ## Publish to the Marketplace
 
 From `intellij-plugin/`:
@@ -146,6 +167,11 @@ export PUBLISH_TOKEN=...      # token from plugins.jetbrains.com
 
 The first upload must be done by hand through the Marketplace website;
 `publishPlugin` works for updates after that.
+
+The VS Code extension goes to the Visual Studio Marketplace with
+`npx vsce publish` from `vscode-extension/` (publisher `sonensei`, a
+personal access token from Azure DevOps), and to Open VSX with
+`npx ovsx publish json-canopy-<version>.vsix -p <token>`. Not done yet.
 
 ## License
 

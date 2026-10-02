@@ -5,3 +5,6 @@ out/
 # Copied from ../dist by `npm run copy:webview` — not source.
 webview/
 .vscode-test/
+# Copied from the repository root by `npm run copy:assets`.
+/LICENSE
+/NOTICE

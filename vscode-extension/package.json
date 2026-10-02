@@ -1,10 +1,17 @@
 {
   "name": "json-canopy",
   "displayName": "JSON Canopy",
-  "description": "Browse and edit JSON files as tables and forms, with JSON Schema support.",
-  "version": "0.0.2",
+  "description": "Browse and edit JSON files as nested tables and forms, with JSON Schema support.",
+  "version": "0.0.3",
   "publisher": "sonensei",
   "license": "Apache-2.0",
+  "icon": "images/icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OldPeasant/json-canopy.git",
+    "directory": "vscode-extension"
+  },
+  "homepage": "https://github.com/OldPeasant/json-canopy#readme",
   "private": true,
   "engines": {
     "vscode": "^1.100.0"
@@ -12,6 +19,13 @@
   "categories": [
     "Visualization",
     "Other"
+  ],
+  "keywords": [
+    "json",
+    "json schema",
+    "table",
+    "viewer",
+    "editor"
   ],
   "main": "./dist/extension.js",
   "activationEvents": [],
@@ -27,19 +41,66 @@
         ],
         "priority": "option"
       }
-    ]
+    ],
+    "commands": [
+      {
+        "command": "jsonCanopy.open",
+        "title": "Open in JSON Canopy",
+        "category": "JSON Canopy",
+        "icon": "$(table)"
+      },
+      {
+        "command": "jsonCanopy.openSource",
+        "title": "Open Text Editor to the Side",
+        "category": "JSON Canopy",
+        "icon": "$(go-to-file)"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "jsonCanopy.open",
+          "when": "resourceExtname == .json && activeEditor == workbench.editors.files.textFileEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "jsonCanopy.openSource",
+          "when": "activeCustomEditorId == jsonCanopy.editor",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "jsonCanopy.open",
+          "when": "resourceExtname == .json && !explorerResourceIsFolder",
+          "group": "navigation@20"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "jsonCanopy.open",
+          "when": "resourceExtname == .json"
+        },
+        {
+          "command": "jsonCanopy.openSource",
+          "when": "activeCustomEditorId == jsonCanopy.editor"
+        }
+      ]
+    }
   },
   "scripts": {
     "build:webapp": "npm --prefix .. run build",
-    "copy:webview": "node scripts/copy-webview.mjs",
+    "copy:assets": "node scripts/copy-assets.mjs",
     "bundle": "esbuild src/extension.ts --bundle --platform=node --format=cjs --target=node20 --external:vscode --outfile=dist/extension.js --sourcemap",
-    "build": "npm run build:webapp && npm run copy:webview && npm run bundle",
+    "build": "npm run build:webapp && npm run copy:assets && npm run bundle",
+    "package": "npm run build && vsce package --no-dependencies",
     "check": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/vscode": "~1.100.0",
+    "@vscode/vsce": "^4.0.0",
     "esbuild": "^0.28.2",
     "typescript": "~6.0.2",
     "vitest": "^5.0.1"
