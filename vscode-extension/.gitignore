@@ -8,3 +8,4 @@ webview/
 # Copied from the repository root by `npm run copy:assets`.
 /LICENSE
 /NOTICE
+/CHANGELOG.md

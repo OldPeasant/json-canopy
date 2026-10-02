@@ -149,29 +149,15 @@ npm run package    # builds the web app and the extension, writes json-canopy-<v
 
 Install the `.vsix` with **Extensions → ⋯ → Install from VSIX…**, or press
 F5 on the **VS Code extension** launch configuration for a development
-window. Raise `version` in `vscode-extension/package.json` for every
-package you install: VS Code keeps running a reinstalled same-version
-build until the window reloads.
+window. VS Code keeps running a reinstalled same-version build until the
+window reloads (**Developer: Reload Window**).
 
-## Publish to the Marketplace
+## Release
 
-From `intellij-plugin/`:
-
-```bash
-./gradlew verifyPlugin        # compatibility check against recommended IDEs
-export CERTIFICATE_CHAIN=... PRIVATE_KEY=... PRIVATE_KEY_PASSWORD=...
-./gradlew signPlugin          # optional but recommended
-export PUBLISH_TOKEN=...      # token from plugins.jetbrains.com
-./gradlew publishPlugin
-```
-
-The first upload must be done by hand through the Marketplace website;
-`publishPlugin` works for updates after that.
-
-The VS Code extension goes to the Visual Studio Marketplace with
-`npx vsce publish` from `vscode-extension/` (publisher `sonensei`, a
-personal access token from Azure DevOps), and to Open VSX with
-`npx ovsx publish json-canopy-<version>.vsix -p <token>`. Not done yet.
+The IntelliJ plugin and the VS Code extension share one version (in the
+root `package.json`) and one changelog ([`CHANGELOG.md`](CHANGELOG.md)).
+Publishing to the JetBrains Marketplace, the VS Code Marketplace and Open
+VSX is a checklist in [`docs/release.md`](docs/release.md).
 
 ## License
 

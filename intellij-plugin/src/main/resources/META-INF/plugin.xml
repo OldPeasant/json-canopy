@@ -6,7 +6,7 @@
 
     <description><![CDATA[
         <p><b>JSON Canopy</b> opens <code>.json</code> files as nested, filterable, editable tables
-        instead of raw text, in an extra tab next to the built-in JSON editor.</p>
+        or as a schema-driven form, in an extra tab next to the built-in JSON editor.</p>
 
         <h3>Explore</h3>
         <ul>
@@ -19,18 +19,36 @@
         </ul>
 
         <h3>Search</h3>
-        <p>One search box, three ways to look at the results:</p>
+        <p>One search box, two ways to look at the results:</p>
         <ul>
-            <li><b>Matches</b>: only what matched. A matching name shows with its value collapsed,
-                a matching value shows under a dimmed name.</li>
-            <li><b>Path</b>: every match with its hierarchy. A matching name shows its whole value,
-                and the names above the match show the way to it.</li>
-            <li><b>Context</b>: matches with their surroundings. All attributes of the containing
-                object are shown, including sibling sub-trees.</li>
-            <li><b>Names only</b> ignores values, for "give me every <code>description</code>"
-                searches.</li>
-            <li>Matches are highlighted, names that are only there for structure or context are
-                dimmed, and a line under the search box explains the active mode.</li>
+            <li><b>Strict</b>: only what matched, under its dimmed parents. A matching name shows
+                its value; a nested one stays collapsed until you click it.</li>
+            <li><b>Context</b>: a match in full, with all its siblings, and the attributes next to
+                every parent on the way up.</li>
+            <li>Matches are highlighted, and a line under the search box explains the active
+                mode.</li>
+        </ul>
+
+        <h3>JSON Schema</h3>
+        <ul>
+            <li>The schema is found for you: a local <code>$schema</code> in the file, else
+                whatever the IDE's JSON Schema support applies (your mappings, SchemaStore). A
+                remote schema is never downloaded without asking.</li>
+            <li>Problems are marked on the values and listed in the schema bar; click one to jump
+                to it.</li>
+            <li>Enums become dropdowns, the type dropdown offers only what fits, absent optional
+                keys are offered, and <code>readOnly</code> and <code>deprecated</code> are
+                shown. The &#9432; shows descriptions, constraints, defaults and examples.</li>
+            <li>The schema advises, it never blocks.</li>
+        </ul>
+
+        <h3>Tables or form</h3>
+        <ul>
+            <li>A <b>Tables | Form</b> toggle switches between two views of the same document.</li>
+            <li>The form shows objects as labelled fields in schema order, with an outline to
+                navigate by structure and a docs panel for the field in focus.</li>
+            <li><code>oneOf</code>/<code>anyOf</code> with a discriminator get a variant picker
+                that asks before it removes anything.</li>
         </ul>
 
         <h3>Collapse and expand</h3>
@@ -56,8 +74,9 @@
         <h3>Fits your IDE</h3>
         <ul>
             <li>Light and dark themes follow the IDE theme automatically.</li>
-            <li>It is an additional tab. Schema validation and completion stay on the standard
-                JSON tab, so this is a specialized view, not a replacement.</li>
+            <li>It is an additional tab: the standard JSON tab, with its completion, stays where
+                it is, and both edit the same document.</li>
+            <li>Also available for Visual Studio Code.</li>
         </ul>
 
         <p>Source code and issues:

@@ -6,7 +6,13 @@ plugins {
 }
 
 group = "ch.sonensei.canopy"
-version = "0.2.2"
+// One version for the IntelliJ plugin and the VS Code extension, kept in the
+// web app's package.json one directory up (the extension's build checks its
+// own package.json against it).
+version = Regex(""""version"\s*:\s*"([^"]+)"""")
+    .find(providers.fileContents(layout.projectDirectory.file("../package.json")).asText.get())
+    ?.groupValues?.get(1)
+    ?: error("No version in ../package.json")
 
 repositories {
     mavenCentral()
@@ -42,28 +48,9 @@ intellijPlatform {
         id.set("ch.sonensei.canopy")
         name.set("JSON Canopy")
         version.set(project.version.toString())
+        // From ../CHANGELOG.md, shared with the VS Code extension.
         changeNotes.set(
-            """
-            <h4>0.2.2</h4>
-            <ul>
-                <li>New plugin icon, matching the JSON Canopy web app.</li>
-            </ul>
-            <h4>0.2.1</h4>
-            <ul>
-                <li>Fix: the JSON Canopy tab showed "Your file couldn't be accessed" on some IDEs
-                    (seen on IntelliJ IDEA 2026.2 as a Flatpak). The page is now loaded from a
-                    temporary file.</li>
-                <li>New icon for the standalone web app.</li>
-            </ul>
-            <h4>0.2.0</h4>
-            <ul>
-                <li>New search: Matches, Path and Context modes, a "Names only" option, match
-                    highlighting and dimmed context, with a description of the active mode.</li>
-                <li>Collapse and expand any object or array; Shift+click applies to all related
-                    nodes.</li>
-                <li>The field selector closes with Esc or a click outside.</li>
-            </ul>
-            """.trimIndent(),
+            providers.fileContents(layout.projectDirectory.file("../CHANGELOG.md")).asText.map(::changelogHtml),
         )
 
         ideaVersion {
@@ -125,4 +112,60 @@ val copyWebApp = tasks.register<Copy>("copyWebApp") {
 
 tasks.processResources {
     dependsOn(copyWebApp)
+}
+
+// --- Change notes ------------------------------------------------------------
+// Turns ../CHANGELOG.md into the HTML the Marketplace shows as change notes.
+// Only the subset that file uses: `## <version>` headings, `- ` bullets
+// (continued on indented lines), **bold** and `code`. Everything above the
+// first version heading is the file's own preamble and is left out.
+
+fun changelogHtml(markdown: String): String {
+    fun inline(text: String): String = text
+        .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;")
+        .replace(Regex("""\*\*(.+?)\*\*"""), "<b>$1</b>")
+        .replace(Regex("""`(.+?)`"""), "<code>$1</code>")
+
+    val out = StringBuilder()
+    var item: StringBuilder? = null
+    var inList = false
+    var started = false
+    fun flushItem() {
+        item?.let { out.append("<li>").append(inline(it.toString())).append("</li>\n") }
+        item = null
+    }
+    fun closeList() {
+        flushItem()
+        if (inList) out.append("</ul>\n")
+        inList = false
+    }
+    for (line in markdown.lines()) {
+        when {
+            line.startsWith("## ") -> {
+                closeList()
+                started = true
+                out.append("<h4>").append(inline(line.removePrefix("## ").trim())).append("</h4>\n")
+            }
+            !started || line.isBlank() -> {}
+            line.startsWith("- ") -> {
+                flushItem()
+                if (!inList) out.append("<ul>\n")
+                inList = true
+                item = StringBuilder(line.removePrefix("- ").trim())
+            }
+            line.startsWith("  ") && item != null -> item!!.append(' ').append(line.trim())
+            else -> {
+                closeList()
+                out.append("<p>").append(inline(line.trim())).append("</p>\n")
+            }
+        }
+    }
+    closeList()
+    return out.toString()
+}
+
+// Prints the generated change notes, to check them before publishing.
+tasks.register("printChangeNotes") {
+    val notes = providers.fileContents(layout.projectDirectory.file("../CHANGELOG.md")).asText.map(::changelogHtml)
+    doLast { println(notes.get()) }
 }
