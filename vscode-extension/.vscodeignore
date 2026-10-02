@@ -5,3 +5,5 @@ out/**
 **/*.map
 **/*.spec.ts
 tsconfig.json
+.gitignore
+.vscode-test/**

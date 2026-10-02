@@ -126,6 +126,9 @@ both directions map onto `acquireVsCodeApi().postMessage` and the
 - A page edit replaces the whole document with
   `JSON.stringify(data, null, 2)`: comments (`.jsonc`) and the file's own
   formatting are lost on the first Canopy edit. Same as IntelliJ today.
+  The file's line endings and final newline are kept.
+- An edit made in the page less than 300 ms before its tab is closed is
+  lost (the page debounces DOCUMENT_CHANGED). Same as IntelliJ.
 - One undo step per debounced page edit (300 ms batches), and undo
   reloads the whole page state via `EXTERNAL_RELOAD` (expand/scroll state
   may reset). Same as IntelliJ.
@@ -180,7 +183,12 @@ Each step ends in something visible in an Extension Development Host
   - [x] Unit tests (`npm test` in `vscode-extension/`): HTML preparation, message decoding
   - [x] Page under the real CSP in headless Chromium with a stand-in `acquireVsCodeApi`: no violations, schema validated (7 problems on `team-invalid.json`); control run without `'unsafe-eval'` fails as expected
   - [x] Real VS Code 1.139 (Flatpak), isolated profile in `vscode-extension/.vscode-test/`: activates on `onCustomEditor`, page sends READY, document loaded. The rendered page itself was not looked at there — check with F5 ("VS Code extension" launch config)
-- [ ] Step 2: write-back, external changes
+- [x] Step 2: write-back, external changes
+  - [x] `DocumentSync` (no `vscode` import, unit-tested): echo guard comparing with line endings normalised (VS Code keeps a file's CRLF), file's final newline kept, failed edit reloads the page from the file
+  - [x] Read-only for read-only file systems (git: diff views etc.); a write-protected local file stays editable, as in VS Code's text editor
+  - [x] Trace logging of every bridge message (Output → "JSON Canopy", level Trace)
+  - [x] Scripted run in VS Code 1.139 (`--extensionTestsPath`): CRLF file opens, an external edit reaches the page as one EXTERNAL_RELOAD
+  - [x] Manual (installed `.vsix`, real VS Code): edit in the page → text tab, dirty dot, undo/save, text tab → page
 - [ ] Step 3: theme
 - [ ] Step 4: schema
 - [ ] Step 5: entry points, packaging
