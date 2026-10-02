@@ -24,7 +24,7 @@
             <tr>
               @for (k of visibleObjKeys; track k) {
                 <th [attr.data-col-key]="colKey(k)" [class.dim]="objDim(k)" [class.deprecated]="isDeprecated(objChildUid(k))">
-                  <app-hl [text]="k" kind="key" /><app-schema-info [nodeKey]="objChildUid(k)" />
+                  <app-hl [text]="k" /><app-schema-info [nodeKey]="objChildUid(k)" />
                   @if (canEdit) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onEntryDelete(k)" title="Delete key">&times;</button>
                   }
@@ -44,7 +44,7 @@
             @for (e of visibleObjEntries; track e[0]) {
               <tr>
                 <th [attr.data-col-key]="colKey('__k__')" [class.dim]="objDim(e[0])" [class.deprecated]="isDeprecated(objChildUid(e[0]))">
-                  <app-hl [text]="e[0]" kind="key" /><app-schema-info [nodeKey]="objChildUid(e[0])" />
+                  <app-hl [text]="e[0]" /><app-schema-info [nodeKey]="objChildUid(e[0])" />
                   @if (canEdit) {
                     <button type="button" class="del-btn" (click)="$event.stopPropagation(); onEntryDelete(e[0])" title="Delete key">&times;</button>
                   }
@@ -94,7 +94,7 @@
           <thead>
             <tr>
               @for (k of visibleArrayKeys; track k) {
-                <th [attr.data-col-key]="colKey(k)" [class.dim]="columnDim(k)" [class.deprecated]="isDeprecated(columnUid(k), false)" [class.ghost]="isGhostColumn(k)" [attr.title]="isGhostColumn(k) ? GHOST_COLUMN_TITLE : null"><app-hl [text]="k" kind="key" /><app-schema-info [nodeKey]="columnUid(k)" [wide]="true" /></th>
+                <th [attr.data-col-key]="colKey(k)" [class.dim]="columnDim(k)" [class.deprecated]="isDeprecated(columnUid(k), false)" [class.ghost]="isGhostColumn(k)" [attr.title]="isGhostColumn(k) ? GHOST_COLUMN_TITLE : null"><app-hl [text]="k" /><app-schema-info [nodeKey]="columnUid(k)" [wide]="true" /></th>
               }
               @if (hasNonObjectItems) {
                 <th [attr.data-col-key]="colKey('__val__')">value</th>
@@ -157,7 +157,7 @@
           <tbody>
             @for (k of visibleArrayKeys; track k) {
               <tr>
-                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="columnDim(k)" [class.deprecated]="isDeprecated(columnUid(k), false)" [class.ghost]="isGhostColumn(k)" [attr.title]="isGhostColumn(k) ? GHOST_COLUMN_TITLE : null"><app-hl [text]="k" kind="key" /><app-schema-info [nodeKey]="columnUid(k)" [wide]="true" /></th>
+                <th [attr.data-col-key]="colKey('__k__')" [class.dim]="columnDim(k)" [class.deprecated]="isDeprecated(columnUid(k), false)" [class.ghost]="isGhostColumn(k)" [attr.title]="isGhostColumn(k) ? GHOST_COLUMN_TITLE : null"><app-hl [text]="k" /><app-schema-info [nodeKey]="columnUid(k)" [wide]="true" /></th>
                 @for (i of visibleArrayIndices; track i) {
                   <td>
                     @if (hasCell(arr[i], k)) {

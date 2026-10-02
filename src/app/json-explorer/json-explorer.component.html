@@ -24,10 +24,6 @@
         </button>
       }
     </div>
-    <label class="keys-only" title="Search attribute names only; ignore values">
-      <input type="checkbox" [checked]="filter.keysOnly()" (change)="filter.setKeysOnly($any($event.target).checked)" />
-      Names only
-    </label>
     @if (layout === 'form') {
       <button type="button" class="panel-toggle" [class.is-active]="panels.outlineOpen()" (click)="panels.toggleOutline()" title="Navigate the document by its structure">Outline</button>
     }

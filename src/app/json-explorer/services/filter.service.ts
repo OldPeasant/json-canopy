@@ -3,29 +3,27 @@ import { CollapseService } from './collapse.service';
 
 // A "node" is a single key/value pair anywhere in the tree (an object entry,
 // an array item, or an array-of-objects cell). Searching works on the whole
-// tree at once and offers three views of the same matches:
-//   'matches' — only what matched. A key match shows the key with its value
-//               collapsed; a value match shows the value under a dimmed key.
-//               Ancestors are shown only as dimmed path keys.
-//   'path'    — every matching key or value, with its full hierarchy. A key
-//               match also shows its whole value, sub-tree included;
-//               ancestors show their normal keys but only the branches
-//               leading to a match.
-//   'context' — a match is shown with everything around it: all attributes of
-//               the containing object, sibling subtrees included. Ancestors
-//               show only the path; non-matching context is dimmed.
+// tree at once and offers two views of the same matches:
+//   'strict'  — only what matched. A key match shows the key with its value
+//               (a nested value collapsed); a value match shows the value
+//               under a dimmed key. Ancestors are shown only as dimmed path
+//               keys.
+//   'context' — a match is shown in full, subtree included, together with
+//               all its siblings (the other attributes of its object, or the
+//               other items of its array). Along the path up to the root,
+//               every ancestor's sibling attributes show too, collapsed when
+//               nested; sibling items of an ancestor inside an array do not.
+//               Non-matching context is dimmed.
 // Anything the filter leaves collapsed can be expanded by clicking it (see
 // CollapseService).
-export type FilterMode = 'matches' | 'path' | 'context';
+export type FilterMode = 'strict' | 'context';
 
 @Injectable({ providedIn: 'root' })
 export class FilterService {
   private collapse = inject(CollapseService);
 
   readonly text = signal('');
-  readonly mode = signal<FilterMode>('path');
-  // When set, only keys are searched; value text is ignored.
-  readonly keysOnly = signal(false);
+  readonly mode = signal<FilterMode>('strict');
 
   set(value: string): void {
     this.text.set(value);
@@ -34,11 +32,6 @@ export class FilterService {
 
   setMode(mode: FilterMode): void {
     this.mode.set(mode);
-    this.collapse.clear();
-  }
-
-  setKeysOnly(on: boolean): void {
-    this.keysOnly.set(on);
     this.collapse.clear();
   }
 
@@ -62,7 +55,7 @@ export class FilterService {
   // Primitive values only; containers match through their descendants.
   valueMatch(value: unknown): boolean {
     const term = this.term();
-    if (!term || this.keysOnly()) return false;
+    if (!term) return false;
     if (value === null || value === undefined || typeof value === 'object') return false;
     return String(value).toLowerCase().includes(term);
   }
@@ -87,45 +80,49 @@ export class FilterService {
     return Object.entries(value as Record<string, unknown>).some(([k, v]) => this.treeMatch(k, v));
   }
 
-  // This node matched in a way that shows its whole subtree: any match in
-  // 'context' mode, a name match in 'path' mode.
+  // This node matched in a way that shows its whole subtree: any direct
+  // match in 'context' mode.
   forces(key: string | null, value: unknown): boolean {
-    if (!this.active) return false;
-    switch (this.mode()) {
-      case 'context': return this.directMatch(key, value);
-      case 'path': return this.keyMatch(key);
-      default: return false;
-    }
+    return this.active && this.mode() === 'context' && this.directMatch(key, value);
   }
 
-  // 'context' mode: one entry of this sibling group matched directly, so
-  // every sibling is shown in full, subtree included.
+  // 'context' mode: one entry of this sibling group (an object's attributes,
+  // or an array's items) matched directly, so every sibling is shown in
+  // full, subtree included.
   groupMatch(entries: Array<[string | null, unknown]>): boolean {
     if (!this.active || this.mode() !== 'context') return false;
     return entries.some(([k, v]) => this.directMatch(k, v));
   }
 
-  // Whether the filter wants this node's value collapsed behind a click: only
-  // in 'matches' mode, when its key matched but nothing about the value did.
+  // 'context' mode: this object is on the way to a match, so all its
+  // attributes are shown — the ones not leading to a match collapsed (see
+  // collapsedByFilter). Arrays don't widen this way: sibling items of an
+  // ancestor stay hidden.
+  widens(entries: Array<[string, unknown]>): boolean {
+    if (!this.active || this.mode() !== 'context') return false;
+    return entries.some(([k, v]) => this.treeMatch(k, v));
+  }
+
+  // Whether the filter wants this node's nested value collapsed behind a
+  // click (a plain value always shows). In 'strict' mode: its key matched but
+  // nothing inside did. In 'context' mode: it is only there as an ancestor's
+  // sibling.
   collapsedByFilter(key: string | null, value: unknown): boolean {
-    if (!this.active || this.mode() !== 'matches') return false;
-    return this.keyMatch(key) && !this.valueMatch(value) && !this.descendantMatch(value);
+    if (!this.active || value === null || typeof value !== 'object') return false;
+    if (this.mode() === 'context') return !this.treeMatch(key, value);
+    return this.keyMatch(key) && !this.descendantMatch(value);
   }
 
   // Keys that are only there for structure or context, not because they matched.
   keyDim(key: string | null, value: unknown): boolean {
     if (!this.active) return false;
-    switch (this.mode()) {
-      case 'matches': return !this.keyMatch(key);
-      case 'context': return !this.treeMatch(key, value);
-      default: return false;
-    }
+    return this.mode() === 'strict' ? !this.keyMatch(key) : !this.treeMatch(key, value);
   }
 
   // Splits text around case-insensitive occurrences of the search term.
-  highlight(text: string, isKey: boolean): Array<{ t: string; hit: boolean }> {
+  highlight(text: string): Array<{ t: string; hit: boolean }> {
     const term = this.term();
-    if (!term || (!isKey && this.keysOnly())) return [{ t: text, hit: false }];
+    if (!term) return [{ t: text, hit: false }];
     const lower = text.toLowerCase();
     const parts: Array<{ t: string; hit: boolean }> = [];
     let from = 0;

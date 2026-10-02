@@ -32,9 +32,9 @@
       <div class="field" [attr.data-node]="childUid(f.key)" (focusin)="onFocus(f.key, $event)" (click)="onFocus(f.key, $event)" [class.ghost]="f.ghost" [class.block]="!f.ghost && kind !== 'scalar'" [class.deprecated]="isDeprecated(f.key)">
         <div class="label">
           @if (kind === 'object' && !f.ghost) {
-            <button type="button" class="fold" (click)="toggle(f.key)" [title]="isCollapsed(f.key) ? 'Expand' : 'Collapse'">{{ isCollapsed(f.key) ? '▸' : '▾' }}</button>
+            <button type="button" class="fold" (click)="toggle(f.key, $event)" [title]="(isCollapsed(f.key) ? 'Click to expand' : 'Click to collapse') + '. Shift+click: all related nodes too'">{{ isCollapsed(f.key) ? '▸' : '▾' }}</button>
           }
-          <span class="name" [class.dim]="keyDim(f.key)"><app-hl [text]="f.key" kind="key" /></span>@if (f.required) {<b class="req" title="Required">*</b>}
+          <span class="name" [class.dim]="keyDim(f.key)"><app-hl [text]="f.key" /></span>@if (f.required) {<b class="req" title="Required">*</b>}
           <app-schema-info [nodeKey]="childUid(f.key)" />
           @if (!f.ghost && kind !== 'array' && problemsAt(f.key).length) {
             <span class="problem-badge" [attr.data-problem-key]="childUid(f.key)" [title]="problemTitle(f.key)">⚠</span>
@@ -54,7 +54,7 @@
             }
           } @else if (kind === 'object') {
             @if (isCollapsed(f.key)) {
-              <button type="button" class="collapsed-chip" [class.has-problems]="problemCount(f.key) > 0" (click)="toggle(f.key)" title="Expand">
+              <button type="button" class="collapsed-chip" [class.has-problems]="problemCount(f.key) > 0" (click)="toggle(f.key, $event)" title="Click to expand. Shift+click: expand all related nodes too">
                 ▸ &#123; {{ objectSize(child) }} &#125;@if (problemCount(f.key)) { ⚠ {{ problemCount(f.key) }}}
               </button>
             } @else {

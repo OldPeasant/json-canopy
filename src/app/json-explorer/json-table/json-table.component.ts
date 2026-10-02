@@ -163,14 +163,9 @@ export class JsonTableComponent implements OnInit {
     return Object.keys(this.value as Record<string, unknown>);
   }
 
-  // In 'context' mode, a direct match among this object's own entries widens
-  // visibility to every entry here — showing the whole record around the match.
-  private get objGroupMatch(): boolean {
-    return this.filter.groupMatch(this.objEntries);
-  }
-
   get filteredObjEntries(): [string, unknown][] {
-    const widened = this.objGroupMatch;
+    // In 'context' mode, an object on the way to a match shows every entry.
+    const widened = this.filter.widens(this.objEntries);
     return this.objEntries.filter(([k, v]) => this.entryVisible(k, v, widened));
   }
 
@@ -244,12 +239,25 @@ export class JsonTableComponent implements OnInit {
     return this.arr.some(item => !this.isObjectItem(item));
   }
 
-  // Whether the row at this item is itself a "widened" group in 'context'
-  // mode — i.e. one of its own cells matched, so every other cell in the row
-  // should show too, to render the full record.
-  rowGroupMatch(item: unknown): boolean {
-    return this.isObjectItem(item) && this.filter.groupMatch(this.objEntriesOf(item));
+  // Whether the row at this item shows all its cells in 'context' mode: it
+  // is on the way to a match, so every other cell in the row shows too.
+  private rowWidened(item: unknown): boolean {
+    return this.isObjectItem(item) && this.filter.widens(this.objEntriesOf(item));
   }
+
+  // Everything in this array shows in full: expanded by hand, or ('context'
+  // mode) one of its items matched directly, making all items its siblings.
+  // Memoised, as it is asked once per item.
+  private get arrForce(): boolean {
+    if (this.effectiveForce) return true;
+    const key = { arr: this.arr, text: this.filter.text(), mode: this.filter.mode() };
+    const memo = this.arrForceMemo;
+    if (memo && memo.arr === key.arr && memo.text === key.text && memo.mode === key.mode) return memo.force;
+    const force = this.filter.groupMatch(this.arr.map(item => [null, item]));
+    this.arrForceMemo = { ...key, force };
+    return force;
+  }
+  private arrForceMemo?: { arr: unknown[]; text: string; mode: string; force: boolean };
 
   private objEntriesOf(item: unknown): [string, unknown][] {
     return Object.entries(item as Record<string, unknown>);
@@ -262,10 +270,10 @@ export class JsonTableComponent implements OnInit {
   get visibleArrayKeys(): string[] {
     return this.arrayKeys.filter(k => {
       if (this.visibility.isHidden(this.colKey(k))) return false;
-      if (this.effectiveForce || this.filter.directMatch(k, undefined)) return true;
+      if (this.arrForce || this.filter.directMatch(k, undefined)) return true;
       return this.arr.some(item => {
         if (!this.hasCell(item, k)) return false;
-        return this.filter.treeMatch(k, this.cell(item, k)) || this.rowGroupMatch(item);
+        return this.filter.treeMatch(k, this.cell(item, k)) || this.rowWidened(item);
       });
     });
   }
@@ -278,7 +286,7 @@ export class JsonTableComponent implements OnInit {
     return this.arr
       .map((_, i) => i)
       .filter(i => {
-        if (this.effectiveForce) return true;
+        if (this.arrForce) return true;
         const item = this.arr[i];
         if (!this.isObjectItem(item)) return this.filter.treeMatch(null, item);
         return keys.some(k => this.hasCell(item, k) && this.filter.treeMatch(k, this.cell(item, k)));
@@ -294,7 +302,7 @@ export class JsonTableComponent implements OnInit {
   // items) are exposed so edits/deletes can address the real position in
   // `arr`, independent of which items the filter currently hides.
   get filteredArrItemIndices(): number[] {
-    if (this.effectiveForce) return this.arr.map((_, i) => i);
+    if (this.arrForce) return this.arr.map((_, i) => i);
     return this.arr.map((_, i) => i).filter(i => this.filter.treeMatch(null, this.arr[i]));
   }
 
@@ -343,7 +351,7 @@ export class JsonTableComponent implements OnInit {
   }
 
   itemForceVisible(item: unknown): boolean {
-    return this.effectiveForce || this.filter.forces(null, item);
+    return this.arrForce || this.filter.forces(null, item);
   }
 
   // In 'context' mode a matching node shows its whole subtree, and so do the
@@ -351,7 +359,7 @@ export class JsonTableComponent implements OnInit {
   // group, so an ancestor that merely contains a match never forces the
   // whole document.
   cellForceVisible(item: unknown, key: string): boolean {
-    return this.effectiveForce
+    return this.arrForce
       || this.filter.forces(key, this.cell(item, key))
       || this.filter.groupMatch(this.objEntriesOf(item));
   }
@@ -387,10 +395,9 @@ export class JsonTableComponent implements OnInit {
   columnDim(key: string): boolean {
     if (!this.filter.active) return false;
     switch (this.filter.mode()) {
-      case 'matches': return !this.filter.keyMatch(key);
+      case 'strict': return !this.filter.keyMatch(key);
       case 'context':
         return !this.arr.some(item => this.hasCell(item, key) && this.filter.treeMatch(key, this.cell(item, key)));
-      default: return false;
     }
   }
 

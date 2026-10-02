@@ -20,14 +20,12 @@ import { FilterService } from '../services/filter.service';
 })
 export class HighlightComponent {
   @Input({ required: true }) text!: string;
-  @Input() kind: 'key' | 'value' = 'value';
 
   private filter = inject(FilterService);
 
   get parts(): Array<{ t: string; hit: boolean }> {
     // Reads the signal so the view refreshes when the search changes.
     this.filter.text();
-    this.filter.keysOnly();
-    return this.filter.highlight(this.text, this.kind === 'key');
+    return this.filter.highlight(this.text);
   }
 }

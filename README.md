@@ -30,15 +30,13 @@ see `docs/editor-plan.md` for the design decisions behind that.
 
 **Search**
 
-One search box, three ways to look at the results:
+One search box, two ways to look at the results:
 
-| Mode | A matching name shows | A matching value shows | Other names |
+| Mode | A matching name shows | A matching value shows | Around it |
 |---|---|---|---|
-| **Matches** | its value collapsed (`▸ …` / `▸ { n }`) | the value | dimmed |
-| **Path** | its whole value, sub-tree included | the value | normal |
-| **Context** | its whole value, plus all siblings in full | the value, plus all siblings in full | non-matching ones dimmed |
+| **Strict** | its value; a nested one collapsed (`▸ { n }`) | the value | only the parents, dimmed |
+| **Context** | its whole value | the value | all its siblings in full; each parent's sibling attributes collapsed, but no other items of an array a parent sits in |
 
-- **Names only** ignores values, so only attribute names match.
 - Matches are highlighted, and a line under the search box describes the
   active mode.
 - [`samples/search-demo.json`](samples/search-demo.json) with the
@@ -71,7 +69,7 @@ Sample document: [`samples/canopy-demo.json`](samples/canopy-demo.json).
 | | |
 |---|---|
 | ![Overview](docs/screenshots/overview.png) | ![Context search](docs/screenshots/context-search.png) |
-| Nested objects and arrays render as tables inside tables; arrays of objects become one column per item. | Searching for "engineer" in *Context* mode keeps the matching items together with their surrounding structure. |
+| Nested objects and arrays render as tables inside tables; arrays of objects become one column per item. | Searching for "engineer" in *Context* mode shows only the engineers, each with their whole record; the other attributes along the way show too, nested ones collapsed. |
 
 ![Edit mode](docs/screenshots/edit-mode.png)
 

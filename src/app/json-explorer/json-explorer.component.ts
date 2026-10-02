@@ -40,9 +40,8 @@ export class JsonExplorerComponent {
 
   // Shown as buttons next to the search box, in this order.
   protected readonly filterModes: { value: FilterMode; label: string; hint: string }[] = [
-    { value: 'matches', label: 'Matches', hint: 'Only what matched. A matching name shows collapsed; a matching value shows under a dimmed name.' },
-    { value: 'path', label: 'Path', hint: 'Every match with its hierarchy: the names above it, and the whole value of a matching name.' },
-    { value: 'context', label: 'Context', hint: 'Matches with their surroundings: all attributes of the containing object, including sibling sub-trees.' },
+    { value: 'strict', label: 'Strict', hint: 'Only what matched, under its dimmed parents. A matching name shows its value; a nested one collapsed.' },
+    { value: 'context', label: 'Context', hint: 'Matches in full, with all their siblings; the siblings of every parent show collapsed. Click to expand, Shift+click to expand all alike.' },
   ];
 
   protected get modeHint(): string {

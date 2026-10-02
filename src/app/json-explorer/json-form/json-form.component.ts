@@ -102,13 +102,14 @@ export class JsonFormComponent {
   }
 
   // The fields the search leaves: those whose name or content matches, all of
-  // them when something above matched, or when (Context mode) a sibling did.
+  // them when something above matched, or (Context mode) when any of them
+  // leads to a match.
   // An absent field is only worth showing if its name is what was searched for.
   get visibleFields(): FormField[] {
     const fields = this.fields;
     if (!this.filter.active) return fields;
     const value = this.value as Record<string, unknown>;
-    const widened = this.filter.groupMatch(this.entries);
+    const widened = this.filter.widens(this.entries);
     return fields.filter(f => f.ghost
       ? this.filter.keyMatch(f.key)
       : this.effectiveForce || widened || this.filter.treeMatch(f.key, value[f.key]));
@@ -190,8 +191,9 @@ export class JsonFormComponent {
     return this.collapse.get(this.childUid(key), this.childPath(key)) ?? this.childFilterCollapsed(key);
   }
 
-  toggle(key: string): void {
-    this.collapse.set(this.childUid(key), this.childPath(key), !this.isCollapsed(key), false);
+  // Shift-click applies to every related node (same structural path).
+  toggle(key: string, event: MouseEvent): void {
+    this.collapse.set(this.childUid(key), this.childPath(key), !this.isCollapsed(key), event.shiftKey);
   }
 
   // --- edits ---
