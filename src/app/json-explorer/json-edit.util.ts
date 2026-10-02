@@ -41,6 +41,27 @@ export function blankLike(value: unknown): unknown {
   return defaultForType(type);
 }
 
+// A starting value for a new item appended to `arr` when no schema says what
+// its items look like: shaped like the items already there. In an array of
+// records that is a record with every key any record has (in column order,
+// each blanked like the first record that has it) — not a bare '' with no
+// keys of its own, which would sit in the table's synthetic "value" column
+// and take whatever is typed as a string. An array of plain values gets
+// one more of the same type; an empty array gets ''.
+export function blankItemLike(arr: unknown[]): unknown {
+  const records = arr.filter((item): item is Record<string, unknown> => typeOf(item) === 'object');
+  if (records.length > 0) {
+    const out: Record<string, unknown> = {};
+    for (const record of records) {
+      for (const key of Object.keys(record)) {
+        if (!Object.prototype.hasOwnProperty.call(out, key)) out[key] = blankLike(record[key]);
+      }
+    }
+    return out;
+  }
+  return arr.length > 0 ? blankLike(arr[arr.length - 1]) : '';
+}
+
 export function withEntry(
   obj: Record<string, unknown>,
   key: string,

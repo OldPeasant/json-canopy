@@ -15,6 +15,7 @@ import { appendKey, type GhostKey, type Problem } from '../../schema';
 import { estimateAvgItemBytes, initialRevealCount } from '../reveal.util';
 import {
   JsonType,
+  blankItemLike,
   blankLike,
   typeOf,
   withAppended,
@@ -491,12 +492,13 @@ export class JsonTableComponent implements OnInit {
     this.valueChange.emit(withoutItemAt(this.arr, index));
   }
 
-  // Seeded from the array's item schema when there is one (so appending to
+  // Seeded from the array's item schema when there is one; otherwise shaped
+  // like the items already there (blankItemLike). Either way appending to
   // an array of records adds a real record, not a bare string with no keys
-  // of its own to hold name/price/etc. in) — '' otherwise, as before.
+  // of its own to hold name/price/etc. in.
   addItem(): void {
     const seeded = this.schema.seedItemFor(this.uid);
-    const next = withAppended(this.arr, seeded !== undefined ? seeded : '');
+    const next = withAppended(this.arr, seeded !== undefined ? seeded : blankItemLike(this.arr));
     this.valueChange.emit(next);
     // A short array is normally shown in full (revealedCount === its
     // length); appending an item then leaves it one short, hiding exactly
