@@ -120,6 +120,8 @@ class CanopyFileEditor(
         // automatically when `this` (the FileEditor) is disposed, so
         // there's no matching removeDocumentListener call in dispose().
         document?.addDocumentListener(documentListener, this)
+        // The page's "Choose schema…" file input needs this to open anything.
+        browser?.let { FileDialogs.install(it, project) }
         loadPage()
     }
 

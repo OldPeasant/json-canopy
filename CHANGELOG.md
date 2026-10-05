@@ -8,6 +8,11 @@ Format: one `## <version>` heading per release, then `- ` bullets
 (`**bold**` and `` `code` `` are allowed; a bullet may continue on
 indented lines).
 
+## 0.3.1
+
+- **Fix (IntelliJ):** **Choose schema…** and **Change…** did nothing when
+  clicked; they now open the IDE's file chooser.
+
 ## 0.3.0
 
 - **New: VS Code extension.** The same editor as a VS Code custom editor:

@@ -2,7 +2,7 @@
   "name": "json-canopy",
   "displayName": "JSON Canopy",
   "description": "Browse and edit JSON files as nested tables and forms, with JSON Schema support.",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": "sonensei",
   "license": "Apache-2.0",
   "icon": "images/icon.png",
