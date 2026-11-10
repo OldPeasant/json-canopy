@@ -8,7 +8,7 @@ Format: one `## <version>` heading per release, then `- ` bullets
 (`**bold**` and `` `code` `` are allowed; a bullet may continue on
 indented lines).
 
-## Unreleased
+## 0.4.0
 
 - **New: JSON Lines.** A file with one JSON document per line (`.jsonl`,
   `.ndjson`, or any file most of whose lines are JSON) shows each line

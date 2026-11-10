@@ -7,8 +7,8 @@ support — right next to VS Code's text editor, on the same document.
 
 ## Open a file
 
-JSON Canopy doesn't replace the text editor; open a `.json` file with it
-when you want it:
+JSON Canopy doesn't replace the text editor; open a `.json` (or `.jsonl`,
+`.ndjson`) file with it when you want it:
 
 - the **table icon** in the title bar of a JSON text editor,
 - **Open in JSON Canopy** in the Explorer's context menu or the Command
@@ -33,6 +33,8 @@ the side.
 - **Editing in place**, with an explicit type for every value; add and
   remove keys and items, or edit the whole document as Raw JSON.
 - **Search** that keeps the structure around each match.
+- **JSON Lines.** `.jsonl` and `.ndjson` files show one document per
+  line; lines of the same shape share their layout.
 - **A real editor.** Canopy edits VS Code's own document: undo/redo, the
   unsaved-changes dot and save work as usual, and changes made in the
   text editor, by git or by other tools show up in Canopy right away.

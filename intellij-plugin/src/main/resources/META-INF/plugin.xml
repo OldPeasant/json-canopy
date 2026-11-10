@@ -5,7 +5,8 @@
     <vendor email="coder@sonensei.ch" url="https://sonensei.ch">Sonensei.ch</vendor>
 
     <description><![CDATA[
-        <p><b>JSON Canopy</b> opens <code>.json</code> files as nested, filterable, editable tables
+        <p><b>JSON Canopy</b> opens <code>.json</code> and JSON Lines (<code>.jsonl</code>,
+        <code>.ndjson</code>) files as nested, filterable, editable tables
         or as a schema-driven form, in an extra tab next to the built-in JSON editor.</p>
 
         <h3>Explore</h3>
@@ -27,6 +28,14 @@
                 every parent on the way up.</li>
             <li>Matches are highlighted, and a line under the search box explains the active
                 mode.</li>
+        </ul>
+
+        <h3>JSON Lines</h3>
+        <ul>
+            <li>A file with one JSON document per line shows each line as a document of its own;
+                a line that is not JSON shows as its text.</li>
+            <li>Lines of the same shape share their layout: flip a table or hide a column in one,
+                and every line like it follows.</li>
         </ul>
 
         <h3>JSON Schema</h3>
