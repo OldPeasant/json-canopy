@@ -8,6 +8,21 @@ Format: one `## <version>` heading per release, then `- ` bullets
 (`**bold**` and `` `code` `` are allowed; a bullet may continue on
 indented lines).
 
+## Unreleased
+
+- **New: JSON Lines.** A file with one JSON document per line (`.jsonl`,
+  `.ndjson`, or any file most of whose lines are JSON) shows each line
+  the way a whole document is shown, one below the other; a line that is
+  not JSON shows as its text. VS Code and IntelliJ open `.jsonl` and
+  `.ndjson` files too.
+- **Alike lines share their layout.** Lines of the same shape are grouped
+  ("shape A", "shape B", …): turning a table, hiding a column, Shift+click
+  collapsing and column widths apply to every line of the group, and to
+  no other.
+- A schema checks each line on its own, and problems name their line.
+  Edits rewrite only the edited line; every other line is saved exactly
+  as it was.
+
 ## 0.3.1
 
 - **Fix (IntelliJ):** **Choose schema…** and **Change…** did nothing when
