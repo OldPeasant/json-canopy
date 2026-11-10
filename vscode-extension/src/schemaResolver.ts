@@ -126,13 +126,21 @@ export class SchemaSession {
 
 // --- `$schema` and references ---------------------------------------------
 
-/** The top-level `$schema` string of a JSON document, or null. */
+/**
+ * The top-level `$schema` string of a JSON document, or null. For a JSON
+ * Lines file (not one document as a whole), that of its first non-blank line.
+ */
 export function documentSchemaRef(text: string): string | null {
   let root: unknown;
   try {
     root = JSON.parse(text);
   } catch {
-    return null;
+    const first = text.split(/\r?\n/).find((line) => line.trim() !== '');
+    try {
+      root = first === undefined ? undefined : JSON.parse(first);
+    } catch {
+      return null;
+    }
   }
   if (root === null || typeof root !== 'object' || Array.isArray(root)) return null;
   const ref = (root as Record<string, unknown>)['$schema'];

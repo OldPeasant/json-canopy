@@ -2,10 +2,12 @@ import { Injectable, inject } from '@angular/core';
 import { pathKey, type Path, type Problem } from '../../schema';
 import { estimateAvgItemBytes, formRevealKey, initialFormRevealCount, initialRevealCount } from '../reveal.util';
 import { formFields } from '../form-fields.util';
+import { groupRootPath, lineUid } from '../json-lines.util';
 import { revealSteps, type RevealStep } from '../jump-steps.util';
 import { CollapseService } from './collapse.service';
 import { FilterService } from './filter.service';
 import { FocusService } from './focus.service';
+import { JsonLinesService, LINES_INITIAL_COUNT, LINES_REVEAL_KEY } from './json-lines.service';
 import { LayoutService } from './layout.service';
 import { NodeVisibilityService } from './node-visibility.service';
 import { RevealService } from './reveal.service';
@@ -23,6 +25,7 @@ export class JumpService {
   private schema = inject(SchemaService);
   private layout = inject(LayoutService);
   private focus = inject(FocusService);
+  private lines = inject(JsonLinesService);
 
   to(problem: Problem, data: unknown): void {
     this.toPath(this.schema.index().anchorOf(problem), data);
@@ -38,7 +41,7 @@ export class JumpService {
     // paginates by that; but only down to the first array, which hands
     // everything below it to the table.
     let inTable = false;
-    for (const step of revealSteps(data, anchor)) {
+    for (const step of this.stepsTo(anchor, data)) {
       if (this.collapse.get(step.uid, step.path) === true) this.collapse.set(step.uid, step.path, false, false);
       if (step.colKey && this.visibility.isHidden(step.colKey)) this.visibility.toggle(step.colKey);
       const byForm = this.layout.mode() === 'form' && !inTable && step.kind === 'object';
@@ -50,6 +53,18 @@ export class JumpService {
     }
     this.focus.set(pathKey(anchor));
     this.focusWhenRendered(pathKey(anchor));
+  }
+
+  // For JSON Lines the first step of a path is the line: page the list of
+  // lines as far as that one, then go on inside it.
+  private stepsTo(anchor: Path, data: unknown): RevealStep[] {
+    const doc = this.lines.doc();
+    if (!doc) return revealSteps(data, anchor);
+    const index = anchor[0] as number;
+    const line = doc.lines[index];
+    this.reveal.ensure(LINES_REVEAL_KEY, Math.max(0, this.lines.shown().indexOf(index)), LINES_INITIAL_COUNT);
+    if (line?.kind !== 'json') return [];
+    return revealSteps(line.value, anchor.slice(1), { uid: lineUid(index), path: groupRootPath(line.group) });
   }
 
   // The same numbers the table itself uses to decide its first page.

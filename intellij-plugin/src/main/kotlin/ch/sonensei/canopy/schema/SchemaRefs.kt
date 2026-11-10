@@ -8,13 +8,26 @@ import com.google.gson.JsonParser
  */
 object SchemaRefs {
 
-    /** The top-level `$schema` string of a JSON document, or null if there is none or the text is not a JSON object. */
-    fun documentSchemaRef(text: String): String? = try {
+    /**
+     * The top-level `$schema` string of a JSON document, or null if there is none or the text is not a JSON object.
+     * For a JSON Lines file (not one document as a whole), that of its first non-blank line.
+     */
+    fun documentSchemaRef(text: String): String? =
+        schemaRefOf(text) ?: if (parses(text)) null else text.lineSequence().firstOrNull { it.isNotBlank() }?.let { schemaRefOf(it) }
+
+    private fun schemaRefOf(text: String): String? = try {
         val root = JsonParser.parseString(text)
         val ref = if (root.isJsonObject) root.asJsonObject.get("\$schema") else null
         ref?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }?.asString?.trim()?.takeIf { it.isNotEmpty() }
     } catch (e: Exception) {
         null
+    }
+
+    private fun parses(text: String): Boolean = try {
+        JsonParser.parseString(text)
+        true
+    } catch (e: Exception) {
+        false
     }
 
     /** `http(s)` URLs are remote: never downloaded without the user's say-so. */

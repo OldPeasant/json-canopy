@@ -1,0 +1,9 @@
+{"ts":"2026-11-10T08:00:01Z","level":"info","msg":"server started","service":{"name":"api","version":"1.4.2"},"tags":["boot"]}
+{"ts":"2026-11-10T08:00:03Z","level":"info","msg":"connected to database","service":{"name":"api","version":"1.4.2"},"tags":["db"]}
+{"request":{"method":"GET","path":"/users","headers":[{"name":"accept","value":"application/json"},{"name":"user-agent","value":"curl/8.9"}]},"response":{"status":200,"ms":12}}
+{"ts":"2026-11-10T08:00:07Z","level":"warn","msg":"slow query","service":{"name":"api","version":"1.4.2"},"tags":["db","perf"],"durationMs":1830}
+
+--- log rotated at 08:01 ---
+{"request":{"method":"POST","path":"/orders","headers":[{"name":"content-type","value":"application/json"}]},"response":{"status":201,"ms":48}}
+{"ts":"2026-11-10T08:01:12Z","level":"error","msg":"payment declined","service":{"name":"api","version":"1.4.2"},"tags":["payments"]}
+{"request":{"method":"GET","path":"/orders/17","headers":[]},"response":{"status":404,"ms":3}}

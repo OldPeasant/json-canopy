@@ -24,7 +24,7 @@
         </button>
       }
     </div>
-    @if (layout === 'form') {
+    @if (layout === 'form' && !lines.active()) {
       <button type="button" class="panel-toggle" [class.is-active]="panels.outlineOpen()" (click)="panels.toggleOutline()" title="Navigate the document by its structure">Outline</button>
     }
     @if (layout === 'form' && schema.model()) {
@@ -45,11 +45,13 @@
     <div class="filter-hint"><strong>{{ filter.mode() }}:</strong> {{ modeHint }}</div>
   }
   <div class="workspace">
-    @if (layout === 'form' && panels.outlineOpen()) {
+    @if (layout === 'form' && panels.outlineOpen() && !lines.active()) {
       <app-outline class="side narrow" [value]="value" />
     }
     <div class="json-output">
-      @if (layout === 'form') {
+      @if (lines.active()) {
+        <app-json-lines [layout]="layout" (lineChange)="lineChange.emit($event)" />
+      } @else if (layout === 'form') {
         <app-json-form [value]="value" path="" (valueChange)="valueChange.emit($event)" />
       } @else {
         <app-json-table [value]="value" path="" (valueChange)="valueChange.emit($event)" />

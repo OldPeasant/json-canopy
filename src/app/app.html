@@ -66,7 +66,7 @@
         @for (p of schema.problems().slice(0, problemListLimit); track $index) {
           <li>
             <button type="button" class="problem-jump" [disabled]="rawMode()" [title]="rawMode() ? 'Switch to table view to jump' : 'Show in the table'" (click)="jumpTo(p)">
-              <span class="problem-path">{{ formatPath(p.path) }}</span> {{ p.message }}
+              <span class="problem-path">{{ problemPath(p) }}</span> {{ p.message }}
             </button>
           </li>
         }
@@ -99,7 +99,7 @@
           </div>
         </div>
       } @else {
-        <app-json-explorer [value]="data()" [layout]="layout.mode()" (valueChange)="onDataChange($event)" />
+        <app-json-explorer [value]="data()" [layout]="layout.mode()" (valueChange)="onDataChange($event)" (lineChange)="onLineChange($event)" />
       }
     } @else if (hostBridge.isHostMode()) {
       <div class="loader">
@@ -113,7 +113,7 @@
         (dragleave)="onDragLeave()"
         (drop)="onDrop($event)"
       >
-        <p class="hint">Paste JSON below, drop a file, or browse one from disk.</p>
+        <p class="hint">Paste JSON (or JSON Lines) below, drop a file, or browse one from disk.</p>
 
         <textarea
           class="paste-area"
@@ -130,7 +130,7 @@
         <div class="loader-actions">
           <label class="btn file-btn">
             Browse file…
-            <input type="file" accept=".json,application/json" (change)="onFileSelected($event)" hidden />
+            <input type="file" accept=".json,.jsonl,.ndjson,application/json" (change)="onFileSelected($event)" hidden />
           </label>
           <button type="button" class="btn btn-primary" [disabled]="!draft().trim()" (click)="loadDraft()">
             View JSON

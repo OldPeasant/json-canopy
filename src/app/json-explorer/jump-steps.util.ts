@@ -28,13 +28,15 @@ const isObject = (v: unknown): v is Record<string, unknown> =>
 /**
  * The containers between the document root and the node at `path`, with
  * what each must do to show its child. The node itself is not a step:
- * only what is above it has to open.
+ * only what is above it has to open. `root` is the instance key and
+ * structural path of the document root: both '' for a whole document, other
+ * for a line of a JSON Lines file.
  */
-export function revealSteps(data: unknown, path: Path): RevealStep[] {
+export function revealSteps(data: unknown, path: Path, root: { uid: string; path: string } = { uid: '', path: '' }): RevealStep[] {
   const steps: RevealStep[] = [];
   let value = data;
-  let uid = '';
-  let sp = '';
+  let uid = root.uid;
+  let sp = root.path;
   for (let i = 0; i < path.length; ) {
     const seg = path[i];
     if (Array.isArray(value)) {

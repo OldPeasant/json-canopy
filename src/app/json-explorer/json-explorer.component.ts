@@ -1,19 +1,21 @@
 import { Component, EventEmitter, Input, Output, inject } from '@angular/core';
 import { DocsPanelComponent } from './docs-panel/docs-panel.component';
 import { JsonFormComponent } from './json-form/json-form.component';
+import { JsonLinesComponent } from './json-lines/json-lines.component';
 import { OutlineComponent } from './outline/outline.component';
 import { JsonTableComponent } from './json-table/json-table.component';
 import type { Layout } from './layout.util';
 import { FilterMode, FilterService } from './services/filter.service';
 import { EditModeService } from './services/edit-mode.service';
 import { ColumnSyncService } from './services/column-sync.service';
+import { JsonLinesService } from './services/json-lines.service';
 import { PanelService } from './services/panel.service';
 import { SchemaService } from './services/schema.service';
 
 @Component({
   selector: 'app-json-explorer',
   standalone: true,
-  imports: [JsonTableComponent, JsonFormComponent, DocsPanelComponent, OutlineComponent],
+  imports: [JsonTableComponent, JsonFormComponent, JsonLinesComponent, DocsPanelComponent, OutlineComponent],
   templateUrl: './json-explorer.component.html',
   styleUrl: './json-explorer.component.css',
 })
@@ -32,10 +34,15 @@ export class JsonExplorerComponent {
   // that owns the actual `data` signal and does `data.set($event)`.
   @Output() valueChange = new EventEmitter<unknown>();
 
+  // A JSON Lines file (see JsonLinesService) is shown line by line instead of
+  // `value`; an edit says which line it changed.
+  @Output() lineChange = new EventEmitter<{ index: number; value: unknown }>();
+
   protected filter = inject(FilterService);
   protected editMode = inject(EditModeService);
   protected panels = inject(PanelService);
   protected schema = inject(SchemaService);
+  protected lines = inject(JsonLinesService);
   private colSync = inject(ColumnSyncService);
 
   // Shown as buttons next to the search box, in this order.

@@ -65,9 +65,10 @@ export class JsonFormComponent {
     return this.editMode.enabled() && !this.schema.readOnlyFor(this.uid);
   }
 
-  // Problems about the whole document; every other node shows its own on its label.
+  // Problems about the whole document (or line of a JSON Lines file); every
+  // other node shows its own on its label.
   get rootProblems(): readonly Problem[] {
-    return this.uid === '' ? this.schema.index().at('') : [];
+    return this.depth === 0 ? this.schema.index().at(this.uid) : [];
   }
 
   // The variants this object can be, when a discriminator tells them apart.

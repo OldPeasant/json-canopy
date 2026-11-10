@@ -1,7 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { formatPath, parsePathKey, pathKey, type NodeMeta, type Problem } from '../../schema';
 import { SchemaDocComponent } from '../schema-doc/schema-doc.component';
+import { formatLinePath } from '../json-lines.util';
 import { FocusService } from '../services/focus.service';
+import { JsonLinesService } from '../services/json-lines.service';
 import { SchemaService } from '../services/schema.service';
 
 // A side panel that shows what the schema says about the field in focus —
@@ -17,11 +19,14 @@ import { SchemaService } from '../services/schema.service';
 export class DocsPanelComponent {
   private focus = inject(FocusService);
   private schema = inject(SchemaService);
+  private lines = inject(JsonLinesService);
 
   get key(): string | undefined { return this.focus.key(); }
 
   get path(): string {
-    return this.key === undefined ? '' : formatPath(parsePathKey(this.key));
+    if (this.key === undefined) return '';
+    const path = parsePathKey(this.key);
+    return this.lines.active() ? formatLinePath(path) : formatPath(path);
   }
 
   get meta(): NodeMeta | undefined {

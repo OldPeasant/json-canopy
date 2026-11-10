@@ -9,14 +9,20 @@ import com.intellij.openapi.vfs.VirtualFile
 
 /**
  * Registers the JSON Canopy table view as an ADDITIONAL editor for .json
- * files — never a replacement for the built-in text/JSON editor, so schema
+ * files, and JSON Lines ones (.jsonl, .ndjson) — never a replacement for the
+ * built-in text/JSON editor, so schema
  * validation, completion and formatting stay available on their own tab,
  * and files still open normally if JCEF isn't available on this install.
  */
 class CanopyFileEditorProvider : FileEditorProvider, DumbAware {
 
     override fun accept(project: Project, file: VirtualFile): Boolean {
-        return !file.isDirectory && "json".equals(file.extension, ignoreCase = true)
+        return !file.isDirectory && (file.extension ?: "").lowercase() in EXTENSIONS
+    }
+
+    private companion object {
+        // JSON, and JSON Lines (one document per line), which the web app shows line by line.
+        val EXTENSIONS = setOf("json", "jsonl", "ndjson")
     }
 
     override fun createEditor(project: Project, file: VirtualFile): FileEditor {

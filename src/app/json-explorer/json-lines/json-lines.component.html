@@ -1,0 +1,39 @@
+@let lines = doc.lines;
+@for (i of paged; track i) {
+  @let line = lines[i];
+  <section class="line">
+    <header class="line-head">
+      <span class="line-no">line {{ i + 1 }}</span>
+      @if (groupLabel(line); as g) {
+        <span class="line-group" title="Lines of the same shape share their layout: turning a table, hiding a column or collapsing related nodes here does the same in every line marked {{ g }}">shape {{ g }}</span>
+      }
+      @if (problemCount(i); as n) {
+        <span class="line-problems">⚠ {{ n }}</span>
+      }
+    </header>
+    <div class="line-body">
+      @if (line.kind === 'json') {
+        @if (layout === 'form') {
+          <app-json-form [value]="line.value" [path]="groupRootPath(line.group)" [uid]="lineUid(i)" (valueChange)="lineChange.emit({ index: i, value: $event })" />
+        } @else {
+          <app-json-table [value]="line.value" [path]="groupRootPath(line.group)" [uid]="lineUid(i)" (valueChange)="lineChange.emit({ index: i, value: $event })" />
+        }
+      } @else {
+        <table class="text-line">
+          <tr><td><app-hl [text]="line.text" /></td></tr>
+        </table>
+      }
+    </div>
+  </section>
+} @empty {
+  <p class="none">{{ filter.active ? 'No line matches.' : 'The file has no lines.' }}</p>
+}
+@if (hasMore) {
+  <div class="reveal-bar">
+    <span class="reveal-info">{{ revealedCount }} / {{ matching.length }} lines</span>
+    @for (batch of reveal.batches; track batch) {
+      <button type="button" class="reveal-btn" (click)="revealMore(batch)">+{{ batch }}</button>
+    }
+    <button type="button" class="reveal-btn" (click)="revealAll()">Show all {{ matching.length }}</button>
+  </div>
+}

@@ -1,6 +1,6 @@
 @if (type === 'object') {
   @if (rootProblems.length) {
-    <span class="problem-badge" data-problem-key="" [title]="rootProblems[0].message">⚠ {{ rootProblems[0].message }}</span>
+    <span class="problem-badge" [attr.data-problem-key]="uid" [title]="rootProblems[0].message">⚠ {{ rootProblems[0].message }}</span>
   }
   @if (variants; as info) {
     <div class="variants" role="group" aria-label="Variant">

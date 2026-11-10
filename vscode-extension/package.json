@@ -37,6 +37,12 @@
         "selector": [
           {
             "filenamePattern": "*.json"
+          },
+          {
+            "filenamePattern": "*.jsonl"
+          },
+          {
+            "filenamePattern": "*.ndjson"
           }
         ],
         "priority": "option"
@@ -60,7 +66,7 @@
       "editor/title": [
         {
           "command": "jsonCanopy.open",
-          "when": "resourceExtname == .json && activeEditor == workbench.editors.files.textFileEditor",
+          "when": "resourceExtname =~ /^\\.(json|jsonl|ndjson)$/i && activeEditor == workbench.editors.files.textFileEditor",
           "group": "navigation"
         },
         {
@@ -72,14 +78,14 @@
       "explorer/context": [
         {
           "command": "jsonCanopy.open",
-          "when": "resourceExtname == .json && !explorerResourceIsFolder",
+          "when": "resourceExtname =~ /^\\.(json|jsonl|ndjson)$/i && !explorerResourceIsFolder",
           "group": "navigation@20"
         }
       ],
       "commandPalette": [
         {
           "command": "jsonCanopy.open",
-          "when": "resourceExtname == .json"
+          "when": "resourceExtname =~ /^\\.(json|jsonl|ndjson)$/i"
         },
         {
           "command": "jsonCanopy.openSource",

@@ -7,8 +7,27 @@ import { RevealService } from './json-explorer/services/reveal.service';
 import { SchemaService } from './json-explorer/services/schema.service';
 import { JumpService } from './json-explorer/services/jump.service';
 import { LayoutService } from './json-explorer/services/layout.service';
+import { JsonLinesService } from './json-explorer/services/json-lines.service';
 import type { Layout } from './json-explorer/layout.util';
+import { formatLinePath, isJsonLinesFileName, parseJsonLines, type JsonLinesDoc } from './json-explorer/json-lines.util';
 import { formatPath, isRemoteSchemaRef, schemaRefOf, type Problem } from './schema';
+
+// What a text turned out to be: one JSON document, a JSON Lines file, or neither.
+type Reading = { data: unknown } | { lines: JsonLinesDoc } | { error: string };
+
+// One JSON document if the text is one, else JSON Lines if most of its lines
+// are JSON. A file named .jsonl/.ndjson is always read as JSON Lines, even
+// when it happens to be a single document (one line), so that it is written
+// back as one.
+function read(text: string, fileName: string | null): Reading {
+  if (isJsonLinesFileName(fileName)) return { lines: parseJsonLines(text, true)! };
+  try {
+    return { data: JSON.parse(text) };
+  } catch (e) {
+    const lines = parseJsonLines(text);
+    return lines ? { lines } : { error: e instanceof Error ? e.message : 'Invalid JSON' };
+  }
+}
 
 @Component({
   selector: 'app-root',
@@ -24,6 +43,7 @@ export class App {
   protected schema = inject(SchemaService);
   private jump = inject(JumpService);
   protected layout = inject(LayoutService);
+  protected lines = inject(JsonLinesService);
 
   protected readonly data = signal<unknown>(undefined);
   protected readonly fileName = signal<string | null>(null);
@@ -35,11 +55,16 @@ export class App {
   protected readonly rawDraft = signal('');
   protected readonly copied = signal(false);
 
-  protected readonly hasData = () => this.data() !== undefined;
+  // Either `data` holds the document, or (JSON Lines) the lines service does.
+  protected readonly hasData = () => this.data() !== undefined || this.lines.active();
+
+  // What stands for the document where one value is needed: the document
+  // itself, or the first line that is JSON.
+  private readonly sample = computed(() => (this.lines.active() ? this.lines.first() : this.data()));
 
   // What the document itself says its schema is, so the schema bar can
   // point at the file to choose. Resolving it is left to the user for now.
-  protected readonly schemaRef = computed(() => schemaRefOf(this.data()));
+  protected readonly schemaRef = computed(() => schemaRefOf(this.sample()));
 
   // A remote schema is never fetched unasked: the bar offers it, the user
   // decides. `declined` remembers "not now" for this session.
@@ -66,7 +91,10 @@ export class App {
   protected readonly problemsOpen = signal(false);
   // A huge document can fail thousands of times over; the list shows the first few.
   protected readonly problemListLimit = 200;
-  protected readonly formatPath = formatPath;
+
+  protected problemPath(problem: Problem): string {
+    return this.lines.active() ? formatLinePath(problem.path) : formatPath(problem.path);
+  }
 
   // Debounce timer for pushing user edits back to the host — coalesces
   // rapid-fire edits (e.g. dragging through several cell edits) into one
@@ -74,7 +102,11 @@ export class App {
   private notifyHostTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
-    effect(() => this.schema.setData(this.data()));
+    effect(() => {
+      const values = this.lines.values();
+      if (values) this.schema.setLines(values);
+      else this.schema.setData(this.data());
+    });
     if (!this.hostBridge.isHostMode()) return;
     this.hostBridge.onLoadDocument((payload) => {
       // Set before parse() so the very first render already reflects it —
@@ -101,12 +133,23 @@ export class App {
     this.notifyHostOfChange();
   }
 
+  onLineChange(change: { index: number; value: unknown }): void {
+    this.lines.setLine(change.index, change.value);
+    this.notifyHostOfChange();
+  }
+
+  // The document as text, the way it is saved: pretty-printed JSON, or for a
+  // JSON Lines file one line per line, unedited lines exactly as they were.
+  private text(): string {
+    return this.lines.active() ? this.lines.text() : JSON.stringify(this.data(), null, 2);
+  }
+
   toggleRawMode(): void {
     if (this.rawMode()) {
       this.rawMode.set(false);
       this.error.set(null);
     } else {
-      this.rawDraft.set(JSON.stringify(this.data(), null, 2));
+      this.rawDraft.set(this.text());
       this.rawMode.set(true);
     }
   }
@@ -116,13 +159,25 @@ export class App {
   }
 
   applyRaw(): void {
-    try {
-      this.data.set(JSON.parse(this.rawDraft()));
-      this.error.set(null);
-      this.rawMode.set(false);
-      this.notifyHostOfChange();
-    } catch (e) {
-      this.error.set(e instanceof Error ? e.message : 'Invalid JSON');
+    const reading = read(this.rawDraft(), this.fileName());
+    if ('error' in reading) {
+      this.error.set(reading.error);
+      return;
+    }
+    this.show(reading);
+    this.error.set(null);
+    this.rawMode.set(false);
+    this.notifyHostOfChange();
+  }
+
+  // Shows what `read` found, as the one document or as lines.
+  private show(reading: { data: unknown } | { lines: JsonLinesDoc }): void {
+    if ('lines' in reading) {
+      this.data.set(undefined);
+      this.lines.set(reading.lines);
+    } else {
+      this.lines.set(undefined);
+      this.data.set(reading.data);
     }
   }
 
@@ -132,17 +187,18 @@ export class App {
   }
 
   async copyJson(): Promise<void> {
-    await navigator.clipboard.writeText(JSON.stringify(this.data(), null, 2));
+    await navigator.clipboard.writeText(this.text());
     this.copied.set(true);
     setTimeout(() => this.copied.set(false), 1200);
   }
 
   downloadJson(): void {
-    const blob = new Blob([JSON.stringify(this.data(), null, 2)], { type: 'application/json' });
+    const linesMode = this.lines.active();
+    const blob = new Blob([this.text()], { type: linesMode ? 'application/x-ndjson' : 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = this.fileName() ?? 'data.json';
+    a.download = this.fileName() ?? (linesMode ? 'data.jsonl' : 'data.json');
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -202,7 +258,7 @@ export class App {
     const loaded = this.schema.load(text, name, origin);
     if (loaded) {
       this.layout.setSchema(this.schema.key());
-      this.layout.suggest(this.data(), true);
+      this.layout.suggest(this.sample(), true);
     }
     return loaded;
   }
@@ -232,7 +288,7 @@ export class App {
     this.fromHost = false;
     this.schema.clear();
     this.layout.setSchema(undefined);
-    this.layout.suggest(this.data(), false);
+    this.layout.suggest(this.sample(), false);
   }
 
   onDraftInput(event: Event): void {
@@ -268,6 +324,7 @@ export class App {
 
   reset(): void {
     this.data.set(undefined);
+    this.lines.set(undefined);
     this.fileName.set(null);
     this.error.set(null);
     this.draft.set('');
@@ -282,23 +339,23 @@ export class App {
   }
 
   private parse(text: string, fileName: string | null): void {
-    try {
-      const parsed = JSON.parse(text);
-      this.data.set(parsed);
-      this.fileName.set(fileName);
-      this.error.set(null);
-      this.editMode.reset();
-      // A new document starts without the last one's layout choice.
-      this.layout.reset();
-      this.layout.suggest(parsed, this.schema.model() !== undefined);
-      // Reveal counts describe THIS document's array/object sizes, not a
-      // view preference worth carrying over to the next file — unlike
-      // orientation/hidden-column state, which deliberately persists.
-      this.reveal.clear();
-      this.collapse.clear();
-    } catch (e) {
-      this.error.set(e instanceof Error ? e.message : 'Invalid JSON');
+    const reading = read(text, fileName);
+    if ('error' in reading) {
+      this.error.set(reading.error);
+      return;
     }
+    this.show(reading);
+    this.fileName.set(fileName);
+    this.error.set(null);
+    this.editMode.reset();
+    // A new document starts without the last one's layout choice.
+    this.layout.reset();
+    this.layout.suggest(this.sample(), this.schema.model() !== undefined);
+    // Reveal counts describe THIS document's array/object sizes, not a
+    // view preference worth carrying over to the next file — unlike
+    // orientation/hidden-column state, which deliberately persists.
+    this.reveal.clear();
+    this.collapse.clear();
   }
 
   // Debounced write-back to the host — only ever called from genuine user
@@ -310,7 +367,7 @@ export class App {
     if (this.notifyHostTimer !== null) clearTimeout(this.notifyHostTimer);
     this.notifyHostTimer = setTimeout(() => {
       this.notifyHostTimer = null;
-      this.hostBridge.documentChanged(JSON.stringify(this.data(), null, 2));
+      this.hostBridge.documentChanged(this.text());
     }, 300);
   }
 }

@@ -50,6 +50,18 @@ One search box, two ways to look at the results:
 - Shift+click applies to all related nodes: those at the same structural
   position, such as the same column in every row of an array.
 
+**JSON Lines**
+- A file that is not one JSON document but has one per line (`.jsonl`,
+  `.ndjson`, or any file most of whose lines are JSON) shows each line the
+  way a whole document is shown, one below the other. A line that is not
+  JSON shows as its text; blank lines are skipped.
+- Lines of alike shape (at least 80% of their key paths in common) form a
+  group, marked "shape A", "shape B", …: turning a table, hiding a column,
+  Shift+click collapsing and column widths are shared within a group.
+- A schema checks each line on its own. Edits rewrite only the edited line,
+  compactly; every other line is saved exactly as it was.
+- [`samples/json-lines-demo.jsonl`](samples/json-lines-demo.jsonl) shows it.
+
 **Edit**
 - Every value can be edited in place; the type dropdown switches it between
   string/number/boolean/null/object/array.

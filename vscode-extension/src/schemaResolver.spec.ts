@@ -176,6 +176,12 @@ describe('documentSchemaRef', () => {
     expect(documentSchemaRef('[{"$schema":"x"}]')).toBeNull();
     expect(documentSchemaRef('{"a":{"$schema":"x"}}')).toBeNull();
   });
+
+  it('reads the first line of a JSON Lines file', () => {
+    expect(documentSchemaRef('\n{"$schema":"./s.json","a":1}\n{"a":2}\n')).toBe('./s.json');
+    expect(documentSchemaRef('{"a":1}\n{"$schema":"./s.json"}')).toBeNull();
+    expect(documentSchemaRef('not json\n{"$schema":"./s.json"}')).toBeNull();
+  });
 });
 
 function fakeFetch(responses: Record<string, { status: number; body: string } | Error>) {
